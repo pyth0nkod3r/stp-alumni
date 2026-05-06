@@ -65,6 +65,10 @@ export default function LoginPage() {
     loginMutation.mutate({ emailAddress, password });
   };
 
+  const handleForgotPassword = () => {
+    router.push("/forgot-password");
+  };
+
   return (
     <div className="min-h-screen flex px-4 sm:px-6 lg:px-12 xl:px-16 gap-6 lg:gap-8">
       {/* Left side - Image with gradient overlay */}
@@ -105,7 +109,7 @@ export default function LoginPage() {
           </div>
 
           {/* Password Input */}
-          <div className="mb-6">
+          <div className="mb-4">
             <Label htmlFor="password" className="text-gray-700 mb-2 block">
               {t("password")}
             </Label>
@@ -130,6 +134,17 @@ export default function LoginPage() {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="flex justify-end mb-6">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-[#155DFC] hover:text-[#155DFC]/80 hover:underline transition-colors"
+            >
+              {t("forgotPassword")}
+            </button>
           </div>
 
           {/* Login Button */}

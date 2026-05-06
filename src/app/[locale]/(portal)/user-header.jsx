@@ -2,12 +2,13 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import {
   MessageSquareMore,
   Bell,
   PanelLeftOpen,
   PanelLeftClose,
+  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
@@ -15,6 +16,7 @@ import { useSize } from "react-haiku";
 import { useNavbar } from "@/contexts/NavbarContext";
 import useAuthStore from "@/lib/store/useAuthStore";
 import { useAuth } from "@/lib/hooks/useUser";
+import FloatingSearch from "./dashboard/search/FloatingSearch";
 
 /**
  * Get initials from a full name string
@@ -29,23 +31,27 @@ function getInitials(name) {
 
 function UserHeader({ toggleSidebar, isCollapsed }) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const elementRef = useRef(null);
   const { width, height } = useSize(elementRef);
   const { setUserSize } = useNavbar();
+
+  const router = useRouter();
 
   // Auth store data (from login response)
   const user = useAuthStore((state) => state.user);
 
   // Fetch full profile from API (gives us profileImagePath, sector, etc.)
-  const { data: profileData } = useAuth()
-  
+  const { data: profileData } = useAuth();
+
   const profile = profileData?.data || profileData || {};
   // console.log(user,"user",profile)
 
   // Merge: login response gives name/email, profile API gives image/details
   const displayName = user?.name || profile?.name || "User";
   const displayEmail = user?.email || profile?.email || "";
-  const displayImage = profile?.profileImagePath || user?.profileImagePath || null;
+  const displayImage =
+    profile?.profileImagePath || user?.profileImagePath || null;
   const initials = getInitials(displayName);
 
   const headerData = {
@@ -65,7 +71,20 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen(true); // 👈 Open floating search
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
+    <>
+
     <header
       className={`sticky top-0 z-30 w-full px-6 md:px-8 py-4 transition-all duration-300 flex items-center justify-between ${
         isScrolled
@@ -75,7 +94,10 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
       ref={elementRef}
     >
       {/* Mobile logo */}
-      <Link href="/dashboard" className="flex lg:hidden items-center justify-center gap-3">
+      <Link
+        href="/dashboard"
+        className="flex lg:hidden items-center justify-center gap-3"
+      >
         <Image
           src="/assets/logo-removebg-preview.png"
           alt="STP Alumni"
@@ -91,13 +113,27 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
         onClick={toggleSidebar}
         className="hidden lg:flex p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-500"
       >
-        {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+        {isCollapsed ? (
+          <PanelLeftOpen size={20} />
+        ) : (
+          <PanelLeftClose size={20} />
+        )}
       </button>
 
       <div className="flex items-center justify-end">
         <div className="flex items-center gap-4">
+          <button
+              onClick={() => setIsSearchOpen(true)}
+            className="p-3 rounded-full transition-all bg-[#02061814] hover:bg-white/60 active:scale-95 shadow-sm"
+            title="Search (⌘K)"
+          >
+            <Search className="h-4 w-4 text-[#020618]" />
+          </button>
           {/* Message Button */}
-          <Link href={"/dashboard/messaging"} className="p-3 rounded-full transition-all bg-[#02061814] hover:bg-white/60 active:scale-95 shadow-sm" >
+          <Link
+            href={"/dashboard/messaging"}
+            className="p-3 rounded-full transition-all bg-[#02061814] hover:bg-white/60 active:scale-95 shadow-sm"
+          >
             <MessageSquareMore className="h-4 w-4 text-[#020618]" />
           </Link>
 
@@ -116,8 +152,12 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:block">
-                <h1 className="text-[#020618] font-semibold">{headerData.name}</h1>
-                <p className="text-[#02061873] font-light text-sm">{headerData.email}</p>
+                <h1 className="text-[#020618] font-semibold">
+                  {headerData.name}
+                </h1>
+                <p className="text-[#02061873] font-light text-sm">
+                  {headerData.email}
+                </p>
               </div>
             </button>
           </ProfileDrawer>
@@ -131,13 +171,23 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
               </AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">
-              <h1 className="text-[#020618] font-semibold">{headerData.name}</h1>
-              <p className="text-[#02061873] font-light text-sm">{headerData.email}</p>
+              <h1 className="text-[#020618] font-semibold">
+                {headerData.name}
+              </h1>
+              <p className="text-[#02061873] font-light text-sm">
+                {headerData.email}
+              </p>
             </div>
           </div>
         </div>
       </div>
     </header>
+     <FloatingSearch
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+      />
+    </>
+
   );
 }
 
