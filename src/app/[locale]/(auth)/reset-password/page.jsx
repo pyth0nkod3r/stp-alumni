@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { useSearchParams, useRouter } from "@/i18n/routing";
+import {  useRouter } from "@/i18n/routing";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import authService from "@/lib/services/authService";
 import { toast } from "sonner";
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 export default function ResetPasswordPage() {
   const t = useTranslations("ResetPassword");

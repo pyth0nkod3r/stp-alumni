@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatRelativeTime } from "@/lib/helper";
+// import { formatRelativeTime } from "@/lib/helper";
 import useAuthStore from "@/lib/store/useAuthStore";
 import { ModernScrollArea } from "@/components/shared/ScrollArea";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
 function ConversationSkeleton() {
   return (
@@ -48,6 +49,11 @@ function getInitials(name) {
     .toUpperCase()
     .slice(0, 2);
 }
+
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return "";
+  return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
+};
 
 export function ConversationList({
   conversations = [],
@@ -138,7 +144,7 @@ export function ConversationList({
           >
             Chats
           </button>
-          <button
+          {/* <button
             onClick={() => setActiveTab("invitations")}
             className={cn(
               "flex-1 text-sm font-medium py-1.5 rounded-md transition-colors relative",
@@ -153,7 +159,7 @@ export function ConversationList({
                 {pendingCount > 9 ? "9+" : pendingCount}
               </span>
             )}
-          </button>
+          </button> */}
         </div>
 
         {/* Search (chats tab only) */}

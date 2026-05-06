@@ -97,7 +97,7 @@ const messagingService = {
    * @param {string} shortMessage
    */
   sendInvitation: async (recipientId, shortMessage) => {
-    const response = await api.post('/messaging/direct/invite', {
+    const response = await api.post('/messaging/direct/start', {
       recipientId,
       shortMessage,
     });
