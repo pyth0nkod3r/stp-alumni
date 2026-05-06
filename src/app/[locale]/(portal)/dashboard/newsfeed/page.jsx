@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,41 +10,24 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  MoreVertical,
+  Bookmark,
+  TrendingUp,
+  Clock,
+  ChevronRight,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import postService from "@/lib/services/postService";
-import {format} from "date-fns"
-
-const posts = [
-  {
-    id: 1,
-    title:
-      "Leon Cooperman says future stock market returns will be 'unimpressive for a long time'. We totally, generally disagree.",
-    excerpt:
-      "Billionaire investor Leon Cooperman warned on Monday that long-term market returns could be lackluster because this year's incredible comeback will likely rob returns from the future.",
-    content:
-      '"The overall market, we\'ve been pulling a lot of demand forward. I would expect that future returns will be relatively unimpressive for a long time," Cooperman said Monday on CNBC\'s "Squawk Box."\n\nCooperman said when people realize most of the gains are because of government help, valuations for the stock market will come down.',
-    author: {
-      name: "Axe Capital",
-      avatar:
-        "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop",
-    },
-    timestamp: "Today, 7:00PM",
-    image:
-      "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=400&fit=crop",
-    likes: 42,
-    comments: 12,
-    category: "popular",
-  },
-];
+import { format } from "date-fns";
+import { Link } from "@/i18n/routing";
+import { useToggleSave } from "./useNewsfeed";
+import PostCard from "./NewsfeedCard";
 
 const hotTopics = [
   {
     id: 1,
-    title: "Lead with a Grounded Confidence in a Changing...",
+    title: "Lead with a Grounded Confidence in a Changing Market",
     date: "Fri, Dec 15, 2025",
     time: "7:00PM",
     image:
@@ -51,7 +35,7 @@ const hotTopics = [
   },
   {
     id: 2,
-    title: "Lead with a Grounded Confidence in a Changing...",
+    title: "Understanding Market Volatility in Q1 2026",
     date: "Fri, Dec 15, 2025",
     time: "7:00PM",
     image:
@@ -59,7 +43,7 @@ const hotTopics = [
   },
   {
     id: 3,
-    title: "Lead with a Grounded Confidence in a Changing...",
+    title: "Sector Rotation Strategies for Growth",
     date: "Fri, Dec 15, 2025",
     time: "7:00PM",
     image:
@@ -67,249 +51,267 @@ const hotTopics = [
   },
 ];
 
-const filterTabs = [
-  { key: "popular", label: "Popular" },
-  { key: "trending", label: "Trending News" },
-  { key: "technology", label: "Technology" },
-  { key: "sector", label: "Sector" },
-  { key: "interest", label: "Interest" },
-];
-
-
 export default function NewsFeed() {
-  const [activeTab, setActiveTab] = useState("popular");
+  const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [likedPosts, setLikedPosts] = useState(new Set());
+  const [savedPosts, setSavedPosts] = useState(new Set());
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ["newsfeed"],
     queryFn: postService.getNewsfeed,
   });
 
-  
-  function convert(data) {
-    console.log(data, "data");
-  return data?.data.map((ele) => ({
-    id: ele.postId,
-    title: ele?.title || "",
-    content: ele.body,
-    author: {
-      name: `${ele.firstName} ${ele.lastName}`,
-      avatar: ele.authorImage ,
-    },
-    timestamp: ele.createdAt,
-    image: ele.coverImg  || "/assets/hero1.png",
-    likes: ele.likeCount,
-    comments: ele.commentCount,
-    hasUserLiked: ele.hasUserLiked,
-    category:ele.category
-  }));
-}
+  // 👇 Save mutation wired up
 
-  const filteredPosts = convert(data)?.filter((post) => {
-    const matchesTab = activeTab === "popular" || post.category === activeTab;
-    const matchesSearch =
-      post?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const allPosts = useMemo(() => {
+    if (!data?.data) return [];
+    return data.data.map((ele) => ({
+      id: ele.postId,
+      postType: ele.postType,
+      title: ele?.title || "",
+      excerpt: ele.body,
+      content: ele.body,
+      author: {
+        name: `${ele.firstName} ${ele.lastName}`,
+        avatar: ele.authorImage || ele.profileImagePath,
+        title: ele.authorTitle || "",
+        company: ele.companyName || "",
+      },
+      timestamp: ele.createdAt,
+      image:
+        ele.coverImage ||
+        (ele.imageUrls && ele.imageUrls.length > 0 ? ele.imageUrls[0] : null),
+      likes: ele.likeCount || 0,
+      comments: ele.commentCount || 0,
+      hasUserLiked: ele.hasUserLiked || false,
+      isSaved: ele.isSaved || false,
+      category: ele.category || "General",
+    }));
+  }, [data]);
+
+  // Extract unique categories from data and build filter tabs dynamically
+  const filterTabs = useMemo(() => {
+    const categories = new Set();
+    allPosts.forEach((post) => {
+      if (post.category) {
+        categories.add(post.category);
+      }
+    });
+
+    return [
+      { key: "all", label: "All News" },
+      ...Array.from(categories).map((cat) => ({
+        key: cat.toLowerCase().replace(/\s+/g, "-"),
+        label: cat,
+      })),
+    ];
+  }, [allPosts]);
+
+  const filteredPosts = useMemo(() => {
+    return allPosts.filter((post) => {
+      const matchesTab =
+        activeTab === "all" ||
+        post.category.toLowerCase().replace(/\s+/g, "-") ===
+          activeTab.toLowerCase();
+
+      const matchesSearch =
+        !searchQuery ||
+        post?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.author.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesTab && matchesSearch;
+    });
+  }, [allPosts, activeTab, searchQuery]);
+
+  // 👇 Save handler wired to mutation
+  const handleSave = (postId) => {
+    saveMutation.mutate(postId);
+    // Also update local state for immediate UI feedback
+    setSavedPosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  // const handleLike = (postId) => {
+  //   setLikedPosts((prev) => {
+  //     const next = new Set(prev);
+  //     if (next.has(postId)) {
+  //       next.delete(postId);
+  //     } else {
+  //       next.add(postId);
+  //     }
+  //     return next;
+  //   });
+  // };
+
+  const featuredPost = filteredPosts?.[0];
+  const gridPosts = filteredPosts?.slice(1) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin h-8 w-8 border-4 border-stp-blue-light border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {/* Page Header */}
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-stp-blue-light">
-          News Feed
-        </h1>
-
-        <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-          {/* Main Content */}
-          <div className="flex-1 space-y-4 sm:space-y-6">
-            {/* Filter Tabs & Search */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-              {/* Tabs - Horizontal scroll on mobile, wrap on tablet */}
-              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto scrollbar-hide">
-                {filterTabs.map((tab) => (
-                  <Button
-                    key={tab.key}
-                    variant={activeTab === tab.key ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3",
-                      activeTab === tab.key
-                        ? "bg-stp-blue-light text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    onClick={() => setActiveTab(tab.key)}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-stp-blue-light/10 text-stp-blue-light hover:bg-stp-blue-light/20 text-xs font-medium px-2.5 py-0.5">
+                  Latest Updates
+                </Badge>
               </div>
-
-              {/* Search - Full width on mobile, fixed width on desktop */}
-              <div className="relative w-full sm:w-64 md:w-72 lg:w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search author, topics and so on"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 text-sm bg-transparent border border-stp-blue-light w-full"
-                />
-              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
+                News Feed
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-slate-600 max-w-2xl">
+                Stay informed with the latest market insights, industry updates,
+                and expert analysis.
+              </p>
             </div>
-
-            {/* Posts Grid - Responsive layout */}
-            <div className="space-y-4 sm:space-y-6">
-              {filteredPosts?.map((post) => (
-                <article
-                  key={post.id}
-                  className="bg-[#1B2F5B]/5 rounded-xl border border-border overflow-hidden"
-                >
-                  {/* Header: Title Card on top of Image */}
-                  <div className="relative">
-                    {/* Background Image - Responsive aspect ratio */}
-                    <div className="aspect-[3/1] sm:aspect-[2.5/1] md:aspect-[3/1] lg:aspect-[2.5/1] overflow-hidden">
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Title Card Overlay - Responsive positioning and sizing */}
-                    <div className="absolute bottom-0 left-2 right-2 sm:left-4 sm:right-4 md:left-6 md:right-6 translate-y-1/2">
-                      <div className="bg-white rounded-lg p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
-                        <h2 className="text-sm sm:text-base md:text-lg font-semibold text-[#020618] leading-tight line-clamp-2">
-                          {post.title}
-                        </h2>
-
-                        {/* Author & Timestamp - Responsive layout */}
-                        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                              <AvatarImage
-                                src={post.author.avatar}
-                                alt={post.author.name}
-                              />
-                              <AvatarFallback className="text-xs sm:text-sm">
-                                {post.author.name[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-black text-xs sm:text-sm text-stp-blue-light truncate max-w-[150px] sm:max-w-none">
-                              {post.author.name}
-                            </span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {format(post.timestamp, "d MMM yyyy")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content Section - Responsive padding */}
-                  <div className="p-3 sm:p-4 md:p-6 pt-8 sm:pt-10 md:pt-12 lg:pt-14 space-y-3 sm:space-y-4">
-                    {/* Content with truncation for mobile */}
-                    <div className="mt-5 space-y-2 sm:space-y-3">
-                      {/* <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2 sm:line-clamp-none">
-                        {post.excerpt}
-                      </p> */}
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line hidden sm:block">
-                        {post.content}
-                      </p>
-                    </div>
-
-                    {/* Actions - Responsive layout */}
-                    <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-3 xs:gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        className="bg-stp-blue-light text-primary-foreground w-full xs:w-auto text-xs sm:text-sm"
-                      >
-                        Read more
-                      </Button>
-
-                      <div className="flex items-center justify-center xs:justify-end gap-1 sm:gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 sm:h-9 sm:w-9"
-                        >
-                          <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 sm:h-9 sm:w-9"
-                        >
-                          <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 sm:h-9 sm:w-9"
-                        >
-                          <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-
-          {/* Sidebar - Hidden on mobile, shown on tablet and desktop */}
-          <div className="lg:col-span-3 lg:sticky lg:top-25 lg:right-0 self-start max-h-[calc(100vh-2rem)] overflow-y-auto">
-            {/* Hot Topics */}
-            <div className="bg-card rounded-xl border border-border p-4 md:p-5 space-y-3 md:space-y-4 sticky top-4">
-              <h3 className="font-semibold text-sm md:text-base">
-                Hot topics right now
-              </h3>
-
-              <div className="space-y-3 md:space-y-4">
-                {hotTopics.map((topic) => (
-                  <div
-                    key={topic.id}
-                    className="flex gap-2 md:gap-3 cursor-pointer hover:bg-muted/50 p-2 -mx-2 rounded-lg transition-colors group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium line-clamp-2 group-hover:text-stp-blue-light transition-colors">
-                        {topic.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {topic.date}
-                      </p>
-                    </div>
-                    <img
-                      src={topic.image}
-                      alt={topic.title}
-                      className="w-14 h-10 sm:w-16 sm:h-12 object-cover rounded-lg shrink-0"
-                    />
-                  </div>
-                ))}
-              </div>
+            <div className="text-sm text-slate-500 flex items-center gap-1.5">
+              <Clock className="h-4 w-4" />
+              <span>
+                {allPosts.length} article{allPosts.length !== 1 ? "s" : ""}{" "}
+                available
+              </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Add this to your global CSS or component for custom breakpoints */}
-      <style jsx>{`
-        @media (min-width: 480px) {
-          .xs\\:flex-row {
-            flex-direction: row;
-          }
-          .xs\\:items-center {
-            align-items: center;
-          }
-          .xs\\:justify-end {
-            justify-content: flex-end;
-          }
-          .xs\\:w-auto {
-            width: auto;
-          }
-        }
-      `}</style>
-    </>
+        {/* Controls Bar - Sticky removed */}
+        <div className="pb-4 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 w-full lg:w-auto scrollbar-hide">
+              {filterTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border",
+                    activeTab === tab.key
+                      ? "bg-stp-blue-light text-white border-stp-blue-light shadow-md shadow-stp-blue-light/25"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-stp-blue-light/50 hover:text-stp-blue-light",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full lg:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search articles, authors, topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 text-sm bg-white border-slate-200 focus:border-stp-blue-light focus:ring-stp-blue-light/20 rounded-xl h-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-8 space-y-6">
+            {filteredPosts.length > 0 ? (
+              <>
+                {/* Featured Post */}
+                {featuredPost && (
+                  <PostCard post={featuredPost} variant="featured" />
+                )}
+
+                {/* Grid Posts */}
+                {gridPosts.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {gridPosts.map((post) => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Search className="h-7 w-7 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  No articles found
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Try adjusting your search or filter criteria
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <aside className="lg:col-span-4 space-y-6">
+            {/* Hot Topics - Sticky kept */}
+            <div className="bg-white rounded-xl border border-slate-200/60 p-5 sm:p-6 sticky top-24">
+              <div className="flex items-center gap-2 mb-5">
+                <TrendingUp className="h-5 w-5 text-stp-blue-light" />
+                <h3 className="font-semibold text-slate-900">
+                  Hot Topics Right Now
+                </h3>
+              </div>
+
+              <div className="space-y-4">
+                {hotTopics.map((topic, index) => (
+                  <div
+                    key={topic.id}
+                    className="group flex gap-3 cursor-pointer p-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-stp-blue-light/10 flex items-center justify-center text-stp-blue-light font-bold text-sm">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 line-clamp-2 group-hover:text-stp-blue-light transition-colors leading-snug">
+                        {topic.title}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {topic.date}
+                      </p>
+                    </div>
+                    {topic.image && (
+                      <img
+                        src={topic.image}
+                        alt={topic.title}
+                        className="w-14 h-14 object-cover rounded-lg shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                variant="ghost"
+                className="w-full mt-5 text-stp-blue-light hover:bg-stp-blue-light/10 font-medium text-sm rounded-lg"
+              >
+                View All Topics
+                <ArrowUpRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }

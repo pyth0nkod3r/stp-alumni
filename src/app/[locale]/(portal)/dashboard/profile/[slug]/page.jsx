@@ -26,6 +26,7 @@ import React from "react";
 import networkService from "@/lib/services/networkService";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useSendInvitation } from "@/lib/hooks/useMessagingQueries";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,8 @@ export default function ViewProfilePage({ params }) {
 
   const queryClient = useQueryClient();
 
+   const { mutate: sendInvitation, isPending: isSending } = useSendInvitation();
+
   const { mutate: connectToUser, isPending: isConnecting } = useMutation({
     mutationFn: (data) => networkService.connectToUser(data),
     onSuccess: () => {
@@ -150,7 +153,14 @@ export default function ViewProfilePage({ params }) {
     profile.needs?.length > 0;
 
   const handleConnect = () => connectToUser({ userId: profile.userId });
-  const handleMessage = () => console.log("TODO: message", profile.userId);
+
+    const handleMessage = () => {
+    sendInvitation({
+      recipientId: profile.userId,
+      shortMessage: "Hi, I'd like to connect with you!",
+    });
+  };
+  // const handleMessage = () => console.log("TODO: message", profile.userId);
 
   if (isLoading) {
     return (
@@ -258,10 +268,11 @@ export default function ViewProfilePage({ params }) {
                 variant="outline"
                 size="sm"
                 onClick={handleMessage}
-                className="gap-1.5 border-gray-200"
+                disabled={isSending}
+                className="gap-1.5 border-gray-200 cursor-pointer"
               >
                 <MessageCircle className="h-4 w-4" />
-                Message
+                {isSending ? "Opening..." : "Message"}
               </Button>
             )}
             {isPending && (

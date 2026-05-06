@@ -348,7 +348,7 @@ export function useSendInvitation() {
 
 
   return useMutation({
-    mutationFn: ({ recipientId, shortMessage }) =>
+    mutationFn: ({ recipientId, shortMessage="Hi, I'd like to connect with you!" }) =>
       messagingService.sendInvitation(recipientId, shortMessage),
 
     onSuccess: (data) => {
