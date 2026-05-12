@@ -60,6 +60,8 @@ export default function SearchPage() {
     resetSearch,
   } = useInfiniteSearch(query, activeTab, 20);
 
+  console.log(data,"data")
+
   const {
     userSize: { height },
   } = useNavbar();
@@ -166,13 +168,30 @@ export default function SearchPage() {
     resetSearch();
   };
 
+  // const getCount = (type) => {
+  //   if (!data?.counts) return 0;
+  //   if (type === "all") {
+  //     return Object.values(data.counts).reduce((sum, count) => sum + count, 0);
+  //   }
+  //   return data.counts[type] || 0;
+  // };
   const getCount = (type) => {
-    if (!data?.counts) return 0;
+  if (!data?.data) return 0;
+  
+  // ✅ If backend provides counts, use them
+  if (data?.counts) {
     if (type === "all") {
       return Object.values(data.counts).reduce((sum, count) => sum + count, 0);
     }
     return data.counts[type] || 0;
-  };
+  }
+  
+  // ✅ Fallback: calculate from actual data arrays
+  if (type === "all") {
+    return Object.values(data.data).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+  }
+  return data.data[type]?.length || 0;
+};
 
   const renderResults = () => {
     if (!data?.data) return null;
@@ -187,7 +206,7 @@ export default function SearchPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <Users className="h-5 w-5 text-[#155DFC]" />
-                {t("people")} ({data.counts.people})
+                {t("people")} ({data.counts?.people || data.data.people.length })
               </h2>
             </div>
             <div className="space-y-3">
@@ -213,7 +232,7 @@ export default function SearchPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#155DFC]" />
-                {t("posts")} ({data.counts.posts})
+                {t("posts")} ({data.counts?.posts || data.data.posts.length })
               </h2>
             </div>
             <div className="space-y-3">
@@ -239,7 +258,7 @@ export default function SearchPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <Newspaper className="h-5 w-5 text-[#155DFC]" />
-                {t("news")} ({data.counts.newsfeed})
+                {t("news")} ({data.counts?.newsfeed || data.data.newsfeed.length })
               </h2>
             </div>
             <div className="space-y-3">
@@ -265,7 +284,7 @@ export default function SearchPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-[#155DFC]" />
-                {t("events")} ({data.counts.events})
+                {t("events")} ({data.counts?.events || data.data.events.length })
               </h2>
             </div>
             <div className="space-y-3">
@@ -291,7 +310,7 @@ export default function SearchPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <Hash className="h-5 w-5 text-[#155DFC]" />
-                {t("groups")} ({data.counts.groups})
+                {t("groups")} ({data.counts?.groups || data.data.groups.length })
               </h2>
             </div>
             <div className="space-y-3">

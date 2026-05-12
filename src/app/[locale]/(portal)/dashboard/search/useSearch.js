@@ -41,7 +41,6 @@ export const useSearch = (query, type = "all", page = 1, limit = 20) => {
 };
 
 // Hook for infinite scroll
-// Hook for infinite scroll
 export const useInfiniteSearch = (query, type = "all", limit = 20) => {
     const [page, setPage] = useState(1);
     const [allResults, setAllResults] = useState(null);
