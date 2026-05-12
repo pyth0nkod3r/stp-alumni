@@ -116,7 +116,9 @@ export function DealRoomList({
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {rooms.map((room) => (
+            {rooms?.map((room) => {
+              console.log(room,"room")
+              return(
               <button
                 key={room.id}
                 onClick={() => onSelect(room)}
@@ -173,7 +175,7 @@ export function DealRoomList({
                         : "text-muted-foreground",
                     )}
                   >
-                    {room.lastMessage}
+                    {room.lastMessage.content}
                   </p>
                 </div>
 
@@ -186,7 +188,7 @@ export function DealRoomList({
                   </span>
                 )}
               </button>
-            ))}
+            )})}
           </div>
         )}
       </ScrollArea>

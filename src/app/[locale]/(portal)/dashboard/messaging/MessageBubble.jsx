@@ -50,7 +50,7 @@ function MessageStatus({ status }) {
 function MediaContent({ message }) {
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  console.log(message,"isImage")
+  // console.log(message,"isImage")
   if (!message.mediaUrl) return null;
 
   const isImage =

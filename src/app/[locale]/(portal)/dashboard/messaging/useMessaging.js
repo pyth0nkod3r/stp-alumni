@@ -8,11 +8,16 @@ import { toast } from "sonner";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import useAuthStore from "@/lib/store/useAuthStore";
 import { useDeleteConversation, useDeleteMessage, useLeaveGroup, useMarkAsRead, useRespondToInvitation, useSendInvitation, useSendMedia } from "@/lib/hooks/useMessagingQueries";
+import { useAuth } from "@/lib/hooks/useUser";
 
 
 export function useMessaging() {
   const queryClient = useQueryClient();
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
+  const { data } = useAuth();
+  
+  // console.log(data,"user in useMessaging")
+  const user = data?.data || {}
   const currentUserId = user?.userId || user?.id;
   const unreadDebounceRef = useRef(null);
   const lastUnreadInvalidationRef = useRef(0);
@@ -26,7 +31,7 @@ export function useMessaging() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [typingUsers, setTypingUsers] = useState({});
-const selectedConversationId = selectedConversation?.conversationId ?? null;
+  const selectedConversationId = selectedConversation?.conversationId ?? null;
 
   // Map conversation from backend format
   const mapConversation = (conv) => ({
@@ -164,39 +169,39 @@ const selectedConversationId = selectedConversation?.conversationId ?? null;
   //   },
   // });
 
-const sendMediaFile = useCallback((file, caption = "") => {
-  if (!selectedConversationId || !file) return;
+  const sendMediaFile = useCallback((file, caption = "") => {
+    if (!selectedConversationId || !file) return;
 
-  const tempId = `temp-${Date.now()}-${Math.random()}`;
-  const now = new Date().toISOString();
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const now = new Date().toISOString();
 
-  const optimisticMessage = {
-    id: tempId,
-    messageId: tempId,
-    conversationId: selectedConversationId,
-    senderId: currentUserId,
-    senderName: user?.firstName
-      ? `${user.firstName} ${user.lastName || ""}`.trim()
-      : "You",
-    senderAvatar: user?.profileImagePath,
-    content: caption || file.name,
-    mediaUrl: URL.createObjectURL(file),
-    mediaType: file.type.startsWith("image/") ? "image" : "document",
-    createdAt: now,
-    isOwn: true,
-    status: "sending",
-  };
-//  console.log(file, "useMessaging", optimisticMessage)
-  const formData = new FormData();
-  formData.append("mediaFile", file);
-  if (caption) formData.append("content", caption);
+    const optimisticMessage = {
+      id: tempId,
+      messageId: tempId,
+      conversationId: selectedConversationId,
+      senderId: currentUserId,
+      senderName: user?.firstName
+        ? `${user.firstName} ${user.lastName || ""}`.trim()
+        : "You",
+      senderAvatar: user?.profileImagePath,
+      content: caption,
+      mediaUrl: URL.createObjectURL(file),
+      mediaType: file.type.startsWith("image/") ? "image" : "document",
+      createdAt: now,
+      isOwn: true,
+      status: "sending",
+    };
+     console.log(file, "useMessaging", optimisticMessage)
+    const formData = new FormData();
+    formData.append("mediaFile", file);
+    if (caption) formData.append("content", caption);
 
-  sendMediaMutation({
-    conversationId: selectedConversationId,
-    formData,
-    optimisticMessage,
-  });
-}, [selectedConversationId, currentUserId, user, sendMediaMutation]);
+    sendMediaMutation({
+      conversationId: selectedConversationId,
+      formData,
+      optimisticMessage,
+    });
+  }, [selectedConversationId, currentUserId, user, sendMediaMutation]);
   // WebSocket handlers
 
   const handleNewMessage = useCallback((wsMessage) => {
@@ -211,6 +216,8 @@ const sendMediaFile = useCallback((file, caption = "") => {
       senderId: wsMessage.senderId,
       senderName: wsMessage.senderName,
       senderAvatar: wsMessage.senderAvatar,
+       mediaUrl: wsMessage.mediaPath || null, // Add media URL
+    mediaType: wsMessage.mediaType || null, // Add media type
       conversationId,
       isOwn: wsMessage.senderId === currentUserId,
       status: "delivered"
@@ -305,23 +312,23 @@ const sendMediaFile = useCallback((file, caption = "") => {
     }
   }, [selectedConversation?.conversationId, queryClient]);
 
-// Update handlePresence to write to the ref instead
-const handlePresence = useCallback((data) => {
-  presenceMapRef.current[data.userId] = data.status;
+  // Update handlePresence to write to the ref instead
+  const handlePresence = useCallback((data) => {
+    presenceMapRef.current[data.userId] = data.status;
 
-  // Still update cache so ConversationList re-renders
-  queryClient.setQueryData(["conversations", searchQuery, sortBy], (old) => {
-    if (!old?.data) return old;
-    return {
-      ...old,
-      data: old.data.map(conv =>
-        conv.userId === data.userId
-          ? { ...conv, online: data.status === "online" }
-          : conv
-      )
-    };
-  });
-}, [queryClient, searchQuery, sortBy]);
+    // Still update cache so ConversationList re-renders
+    queryClient.setQueryData(["conversations", searchQuery, sortBy], (old) => {
+      if (!old?.data) return old;
+      return {
+        ...old,
+        data: old.data.map(conv =>
+          conv.userId === data.userId
+            ? { ...conv, online: data.status === "online" }
+            : conv
+        )
+      };
+    });
+  }, [queryClient, searchQuery, sortBy]);
 
   // Initialize WebSocket
   const { isConnected, sendMessage: wsSendMessage, sendTyping, sendReadReceipt } = useWebSocket({

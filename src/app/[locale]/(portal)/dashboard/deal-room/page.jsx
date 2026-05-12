@@ -45,6 +45,8 @@ const DealRoom = () => {
     setIsCreateModalOpen(false);
   };
 
+  // console.log(rooms[0],"rooms")
+
   return (
     <>
       <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-2rem)] flex bg-background">

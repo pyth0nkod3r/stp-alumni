@@ -54,7 +54,7 @@ export default function CreatePost({ onPostCreated }) {
       toast.error("Please add some content or images");
       return;
     }
-
+console.log("Submitting post with content:", postContent, "and images:", images);
     createPost(
       {
         body: postContent,

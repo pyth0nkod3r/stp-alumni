@@ -37,7 +37,7 @@ const postService = {
     // Add images if provided
     if (postData.images && postData.images.length > 0) {
       postData.images.forEach((image, index) => {
-        formData.append(`postImage[${index}]`, image);
+   formData.append(`postImages[]`, image);
       });
     }
     

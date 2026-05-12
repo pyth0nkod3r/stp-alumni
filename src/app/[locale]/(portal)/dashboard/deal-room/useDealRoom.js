@@ -106,6 +106,8 @@ export function useDealRoom() {
       .map(normalizeRoom);
   }, [rawConversations]);
 
+  // console.log(rawConversations,"rawConversations")
+
   // ─── Sort & filter ───────────────────────────────────────────
   const filteredRooms = useMemo(() => {
     let result = [...allRooms];
