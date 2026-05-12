@@ -30,6 +30,7 @@ import { ModernScrollArea } from "@/components/shared/ScrollArea";
 import { useRouter } from "@/i18n/routing";
 import useAuthStore from "@/lib/store/useAuthStore";
 import Image from "next/image";
+import { useAuth } from "@/lib/hooks/useUser";
 
 const IMAGE_TYPES = [
   "image/jpeg",
@@ -72,6 +73,8 @@ export function ChatView({
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const { token } = useAuthStore();
+  const { data } = useAuth(); // ✅ Add this
+const currentUserId = data?.data?.userId || data?.data?.id;
   const router = useRouter();
   const typingTimeoutRef = useRef(null);
 
@@ -100,8 +103,16 @@ export function ChatView({
     }, 500);
   };
 
-  const hasTyping = Object.values(typingUsers || {}).length > 0;
+  const otherTypingUsers = Object.entries(typingUsers || {})
+  .filter(([userId]) => userId !== currentUserId) // ✅ Filter out yourself
+  .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+
+
+  const hasTyping = Object.keys(otherTypingUsers).length > 0;
   const messagesEndRef = useRef(null);
+
+  // console.log(typingUsers,"typingUsers")
 
   useEffect(() => {
     if (!isLoading && messagesEndRef.current) {
@@ -362,6 +373,7 @@ export function ChatView({
 
       {/* Message Input */}
       <div className="p-4 border-t border-border bg-card">
+        {/* only show typing indicator for the user who receives the message not the one doing the typing */}
         {hasTyping && (
           <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
             <div className="flex gap-1">
@@ -370,7 +382,7 @@ export function ChatView({
               <span className="animate-bounce delay-200">.</span>
             </div>
             <span>
-              {Object.values(typingUsers).map((t) => t.name).join(", ")} typing...
+              {Object.values(otherTypingUsers).map((t) => t.name).join(", ")} typing...
             </span>
           </div>
         )}

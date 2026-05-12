@@ -190,28 +190,32 @@ export function useSendMedia() {
       messagingService.uploadMedia(conversationId, formData),
 
     onMutate: async ({ conversationId, optimisticMessage }) => {
-      await queryClient.cancelQueries({ queryKey: ["messages", conversationId] });
+      // ✅ Use the SAME key as useMessages
+      const queryKey = messagingKeys.messages(conversationId);
 
-      const previousMessages = queryClient.getQueryData(["messages", conversationId]);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousMessages = queryClient.getQueryData(queryKey);
 
       if (optimisticMessage) {
-        queryClient.setQueryData(["messages", conversationId], (old) => {
+        // ✅ Update the correct cache entry
+        queryClient.setQueryData(queryKey, (old) => {
           const existing = old?.data ?? [];
           return { ...old, data: [...existing, optimisticMessage] };
         });
 
-        // Move conversation to top with last message preview
-        queryClient.setQueryData(["conversations"], (old) => {
+        // ✅ Also fix conversations key if needed
+        queryClient.setQueryData(messagingKeys.conversations, (old) => {
           if (!old?.data) return old;
           return {
             ...old,
             data: old.data.map(conv =>
               conv.conversationId === conversationId
                 ? {
-                    ...conv,
-                    lastMessage: optimisticMessage.content || "Sent an attachment",
-                    lastMessageAt: optimisticMessage.createdAt,
-                  }
+                  ...conv,
+                  lastMessage: optimisticMessage.content || "Sent an attachment",
+                  lastMessageAt: optimisticMessage.createdAt,
+                }
                 : conv
             ).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
           };
@@ -221,33 +225,40 @@ export function useSendMedia() {
       return { conversationId, previousMessages };
     },
 
- onSuccess: (response, { conversationId, optimisticMessage }) => {
-  const realMessage = response?.data;
+    onSuccess: (response, { conversationId, optimisticMessage }) => {
+      const realMessage = response?.data;
+      const queryKey = messagingKeys.messages(conversationId);
 
-  queryClient.setQueryData(["messages", conversationId], (old) => {
-    return {
-      ...old,
-      data: (old?.data ?? []).map(msg =>
-        msg.id === optimisticMessage.id
-          ? {
-              ...optimisticMessage,           // keep all optimistic fields (senderId, senderName, createdAt, isOwn etc.)
-              id: realMessage.messageId,      // upgrade to real ID
-              messageId: realMessage.messageId,
-              mediaUrl: realMessage.mediaUrl, // use real server URL instead of blob
-              type: realMessage.type,
-              status: "delivered",
-            }
-          : msg
-      )
-    };
-  });
-
-  queryClient.invalidateQueries({ queryKey: ["conversations"] });
-},
+      // ✅ Replace optimistic message with real server data
+      queryClient.setQueryData(queryKey, (old) => {
+        return {
+          ...old,
+          data: (old?.data ?? []).map(msg =>
+            // Match by the temp ID we set in optimisticMessage.id
+            msg.id === optimisticMessage.id
+              ? {
+                ...optimisticMessage,
+                id: realMessage.messageId,
+                messageId: realMessage.messageId,
+                mediaUrl: realMessage.mediaPath || realMessage.mediaUrl, // Server might return mediaPath
+                mediaType: realMessage.type || realMessage.mediaType,
+                type: realMessage.type,
+                status: "delivered",
+              }
+              : msg
+          )
+        };
+      });
+      // In useSendMedia onSuccess
+      console.log("Cache after update:", queryClient.getQueryData(messagingKeys.messages(conversationId)));
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
+    },
 
     onError: (error, { conversationId, optimisticMessage }) => {
+      const queryKey = messagingKeys.messages(conversationId);
+
       if (optimisticMessage) {
-        queryClient.setQueryData(["messages", conversationId], (old) => {
+        queryClient.setQueryData(queryKey, (old) => {
           return {
             ...old,
             data: (old?.data ?? []).map(msg =>
@@ -348,14 +359,14 @@ export function useSendInvitation() {
 
 
   return useMutation({
-    mutationFn: ({ recipientId, shortMessage="Hi, I'd like to connect with you!" }) =>
+    mutationFn: ({ recipientId, shortMessage = "Hi, I'd like to connect with you!" }) =>
       messagingService.sendInvitation(recipientId, shortMessage),
 
     onSuccess: (data) => {
       // If the backend returns an existing conversationId (re-invite case),
       // refresh conversations
       if (data?.data?.conversationId) {
-          console.log(data,"data")
+        console.log(data, "data")
         queryClient.invalidateQueries(messagingKeys.conversations);
         router.push(`/dashboard/messaging?conversationId=${data?.data.conversationId}`);
         // toast.success('Conversation already exists');

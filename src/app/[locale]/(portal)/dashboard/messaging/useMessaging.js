@@ -7,7 +7,7 @@ import messagingService from "@/lib/services/messagingService";
 import { toast } from "sonner";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import useAuthStore from "@/lib/store/useAuthStore";
-import { useDeleteConversation, useDeleteMessage, useLeaveGroup, useMarkAsRead, useRespondToInvitation, useSendInvitation, useSendMedia } from "@/lib/hooks/useMessagingQueries";
+import { messagingKeys, useDeleteConversation, useDeleteMessage, useLeaveGroup, useMarkAsRead, useRespondToInvitation, useSendInvitation, useSendMedia } from "@/lib/hooks/useMessagingQueries";
 import { useAuth } from "@/lib/hooks/useUser";
 
 
@@ -15,7 +15,7 @@ export function useMessaging() {
   const queryClient = useQueryClient();
   const { token } = useAuthStore();
   const { data } = useAuth();
-  
+
   // console.log(data,"user in useMessaging")
   const user = data?.data || {}
   const currentUserId = user?.userId || user?.id;
@@ -60,7 +60,7 @@ export function useMessaging() {
   });
 
   const { data: messagesData, isLoading: isLoadingMessages } = useQuery({
-    queryKey: ["messages", selectedConversation?.conversationId],
+    queryKey: messagingKeys.messages(selectedConversation?.conversationId),
     queryFn: () => messagingService.getMessages(selectedConversation?.conversationId),
     enabled: !!selectedConversation?.conversationId && !!token,
   });
@@ -191,11 +191,19 @@ export function useMessaging() {
       isOwn: true,
       status: "sending",
     };
-     console.log(file, "useMessaging", optimisticMessage)
+    //  console.log(file, "useMessaging", optimisticMessage)
     const formData = new FormData();
     formData.append("mediaFile", file);
     if (caption) formData.append("content", caption);
 
+    pendingMessagesRef.current[tempId] = {
+      content: caption,
+      conversationId: selectedConversationId,
+      createdAt: now,
+      mediaType: file.type.startsWith("image/") ? "image" : "document",
+      tempMediaUrl: optimisticMessage.mediaUrl
+    };
+    console.log("calling sendMediaMutation with", { conversationId: selectedConversationId, optimisticMessage: optimisticMessage?.id });
     sendMediaMutation({
       conversationId: selectedConversationId,
       formData,
@@ -206,43 +214,75 @@ export function useMessaging() {
 
   const handleNewMessage = useCallback((wsMessage) => {
     const conversationId = wsMessage.conversationId;
+    const queryKey = messagingKeys.messages(conversationId);
 
     const newMessage = {
       id: wsMessage.messageId,
       messageId: wsMessage.messageId,
-      content: wsMessage.content,
+      content: wsMessage.content || "",
       type: wsMessage.messageType || "text",
       createdAt: wsMessage.createdAt,
       senderId: wsMessage.senderId,
       senderName: wsMessage.senderName,
       senderAvatar: wsMessage.senderAvatar,
-       mediaUrl: wsMessage.mediaPath || null, // Add media URL
-    mediaType: wsMessage.mediaType || null, // Add media type
+      mediaUrl: wsMessage.mediaPath || null, // Add media URL
+      mediaType: wsMessage.mediaType || null, // Add media type
       conversationId,
       isOwn: wsMessage.senderId === currentUserId,
       status: "delivered"
     };
 
-    queryClient.setQueryData(["messages", conversationId], (old) => {
+    queryClient.setQueryData(queryKey, (old) => {
       const existing = old?.data;
       if (!existing || !Array.isArray(existing)) return { data: [newMessage] };
 
       // Check for duplicate by real messageId
       if (existing.some(m => m.messageId === wsMessage.messageId)) return old;
 
-      // Find matching optimistic message from sender
+      // Find matching optimistic message (for own messages)
       if (wsMessage.senderId === currentUserId) {
-        const tempId = Object.keys(pendingMessagesRef.current).find(id => {
-          const p = pendingMessagesRef.current[id];
-          return p.content === wsMessage.content && p.conversationId === conversationId;
-        });
+        // Look for a matching pending message
+        let matchedKey = null;
+        let matchedIndex = -1;
 
-        if (tempId) {
-          delete pendingMessagesRef.current[tempId]; // clean up
-          return {
-            ...old,
-            data: existing.map(m => m.id === tempId ? newMessage : m)
-          };
+        for (const [key, pending] of Object.entries(pendingMessagesRef.current)) {
+          // Match by content and conversationId
+          if (pending.conversationId === conversationId) {
+            // For text messages
+            if (wsMessage.content && pending.content === wsMessage.content && !pending.mediaType) {
+              matchedKey = key;
+              break;
+            }
+            // For media messages (file without caption or with caption)
+            if (pending.mediaType && wsMessage.mediaPath) {
+              matchedKey = key;
+              break;
+            }
+          }
+        }
+
+        if (matchedKey) {
+          // Find the optimistic message in the array
+          for (let i = 0; i < existing.length; i++) {
+            if (existing[i].id === matchedKey || existing[i].messageId === matchedKey) {
+              matchedIndex = i;
+              break;
+            }
+          }
+
+          if (matchedIndex !== -1) {
+            // Clean up blob URL to prevent memory leaks
+            const pendingMsg = pendingMessagesRef.current[matchedKey];
+            if (pendingMsg.tempMediaUrl && pendingMsg.tempMediaUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(pendingMsg.tempMediaUrl);
+            }
+            delete pendingMessagesRef.current[matchedKey];
+
+            // Replace the optimistic message
+            const updatedMessages = [...existing];
+            updatedMessages[matchedIndex] = newMessage;
+            return { ...old, data: updatedMessages };
+          }
         }
       }
 
@@ -257,7 +297,11 @@ export function useMessaging() {
         ...old,
         data: old.data.map(conv =>
           conv.conversationId === conversationId
-            ? { ...conv, lastMessage: wsMessage.content, lastMessageAt: wsMessage.createdAt }
+            ? {
+              ...conv,
+              lastMessage: wsMessage.content || (wsMessage.mediaType === 'image' || wsMessage.mediaType === 'file' ? "Sent an attachment" : ""),
+              lastMessageAt: wsMessage.createdAt
+            }
             : conv
         ).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
       };
@@ -298,8 +342,10 @@ export function useMessaging() {
   }, [selectedConversation?.conversationId, currentUserId, typingUsers]);
 
   const handleReadReceipt = useCallback((data) => {
+
     if (data.conversationId === selectedConversation?.conversationId) {
-      queryClient.setQueryData(["messages", data.conversationId], (old) => {
+      const queryKey = messagingKeys.messages(data.conversationId); 
+      queryClient.setQueryData(queryKey, (old) => {
         return {
           ...old,
           data: (old?.data ?? []).map(msg =>
@@ -351,10 +397,25 @@ export function useMessaging() {
   });
   const invitations = invitationsData?.data || [];
 
+  // console.log("messagesData", messagesData?.data?.length);
+  // console.log("cache", queryClient.getQueryData(["messages", selectedConversation?.conversationId])?.data?.length);
   // Fix: Extract data array from messagesData
-  const currentMessages = (messagesData?.data || []).map(msg => ({
-    id: msg.messageId,
-    messageId: msg.messageId,
+ const currentMessages = (messagesData?.data || []).map(msg => {
+  const mediaUrl = msg.mediaUrl || msg.mediaPath;
+  const mediaType = msg.mediaType || msg.type;
+  
+  // Debug: log if media exists but URL is missing
+  if (mediaType === "image" && !mediaUrl) {
+    console.warn("⚠️ Image message has no mediaUrl:", { 
+      id: msg.messageId || msg.id, 
+      mediaPath: msg.mediaPath,
+      mediaUrl: msg.mediaUrl 
+    });
+  }
+  
+  return {
+    id: msg.messageId || msg.id,
+    messageId: msg.messageId || msg.id,
     content: msg.content,
     type: msg.type,
     createdAt: msg.createdAt,
@@ -362,9 +423,11 @@ export function useMessaging() {
     senderName: msg.senderName,
     senderAvatar: msg.senderAvatar,
     isOwn: msg.senderId === currentUserId,
-    status: "delivered",
-    mediaUrl: msg.mediaPath,
-  }));
+    status: msg.status || "delivered",
+    mediaUrl,   // ✅ Use the computed value
+    mediaType,  // ✅ Use the computed value
+  };
+});
 
   // Actions
   const selectConversation = useCallback((conversationId) => {
@@ -403,6 +466,7 @@ export function useMessaging() {
     const conversationId = selectedConversation.conversationId;
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const createdAt = new Date().toISOString();
+    const queryKey = messagingKeys.messages(conversationId);
 
     const optimisticMessage = {
       id: tempId,
@@ -422,7 +486,7 @@ export function useMessaging() {
     pendingMessagesRef.current[tempId] = { content, conversationId, createdAt };
 
     // Add to UI immediately
-    queryClient.setQueryData(["messages", conversationId], (old) => {
+    queryClient.setQueryData(queryKey, (old) => {
       const existing = old?.data ?? [];
       return { ...old, data: [...existing, optimisticMessage] };
     });
