@@ -16,7 +16,7 @@ const Messaging = () => {
 
   const {
     userSize: { height },
-    mobileSize:{height:mobileHeight}
+    mobileSize: { height: mobileHeight },
   } = useNavbar();
   const {
     conversations,
@@ -40,9 +40,9 @@ const Messaging = () => {
     typingUsers, // ← ADD THIS
     isConnected, // ← ADD THIS (optional, for debugging)
   } = useMessaging();
-useEffect(() => {
-  if (conversationId) selectConversation(conversationId);
-}, [conversationId]);
+  useEffect(() => {
+    if (conversationId) selectConversation(conversationId);
+  }, [conversationId]);
   // console.log(currentMessages,"currentMessages")
   const [showGroupDiscovery, setShowGroupDiscovery] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
@@ -59,12 +59,26 @@ useEffect(() => {
     }
   };
 
+  const handleFilterConversations = (conversations) => {
+    if (!searchQuery) return conversations;
+
+    return conversations.filter((conv) => {
+      const nameMatch = conv.name
+        ? conv.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : false;
+      // const memberMatch = conv.members.some((member) =>
+      //   member.name.toLowerCase().includes(searchQuery.toLowerCase())
+      // );
+      return nameMatch;
+    });
+  }
+
   return (
     <div
       className=" flex bg-background"
       style={{
         // top: `${height + 10}px`,
-        height: `calc(100dvh - ${(height + mobileHeight + 30)}px)`,
+        height: `calc(100dvh - ${height + mobileHeight + 30}px)`,
       }}
     >
       {/* <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-2rem)] flex bg-background"> */}
@@ -78,7 +92,7 @@ useEffect(() => {
         )}
       >
         <ConversationList
-          conversations={conversations}
+          conversations={handleFilterConversations(conversations)} // Apply filtering here
           selectedId={selectedConversation?.conversationId}
           searchQuery={searchQuery}
           sortBy={sortBy}

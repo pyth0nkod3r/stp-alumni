@@ -11,7 +11,7 @@ function Professional() {
 
   const arr = [
     {
-      img: "/assets/hero1.png",
+      img: "/assets/stp-9.jpg",
       title: t('network.title'),
       desc: t('network.desc'),
       list: [
@@ -22,7 +22,7 @@ function Professional() {
       ],
     },
     {
-      img: "/assets/hero2.png",
+      img: "/assets/stp-8.jpg",
       title: t('growth.title'),
       desc: t('growth.desc'),
       list: [
@@ -33,7 +33,7 @@ function Professional() {
       ],
     },
     {
-      img: "/assets/hero3.png",
+      img: "/assets/stp-12.jpg",
       title: t('opportunities.title'),
       desc: t('opportunities.desc'),
       list: [
@@ -58,7 +58,7 @@ function Professional() {
               }`}
               key={ele.title}
             >
-              <div className="relative flex-1 flex justify-center items-center md:block">
+              <div className="relative flex-1 flex justify-center items-center md:block rounded-xl">
                 <Image
                   src={ele.img}
                   alt={ele.title}

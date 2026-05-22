@@ -75,7 +75,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center pl-0 pr-4 py-8">
         <div className="relative w-full h-full rounded-2xl overflow-hidden">
           <Image
-            src="/assets/Login.jpg"
+            src="/assets/stp-16.jpg"
             alt="Login background"
             fill
             className="object-cover"

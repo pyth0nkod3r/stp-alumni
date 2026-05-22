@@ -30,7 +30,7 @@ const Hero = () => {
       {/* Background Image */}
       <div className="absolute inset-0 z-0 dark:hidden">
         <Image
-          src="/hero-alumni.jpg"
+          src="/stp-21.jpg"
           alt={t("imageAlt")}
           className="h-full w-full object-cover opacity-75 "
           fill

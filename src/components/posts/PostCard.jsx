@@ -37,7 +37,7 @@ function CommentItem({ comment }) {
       <div className="h-9 w-9 rounded-full bg-gray-200 overflow-hidden shrink-0">
         <Image
           src={
-            comment.profileImage ||
+            comment.profileImagePath ||
             comment.user?.profileImage ||
             "/assets/Profile Image.jpg"
           }

@@ -20,7 +20,12 @@ import { useSendInvitation } from "@/lib/hooks/useMessagingQueries";
 
 function getInitials(name) {
   if (!name) return "?";
-  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 /**
@@ -28,7 +33,7 @@ function getInitials(name) {
  * Step 1: Search and select a user from the network.
  * Step 2: Write a short intro message and send the invitation.
  */
-export function NewMessageDialog({ open, onOpenChange,conversations }) {
+export function NewMessageDialog({ open, onOpenChange, conversations }) {
   const [step, setStep] = useState("search"); // "search" | "compose"
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -39,40 +44,43 @@ export function NewMessageDialog({ open, onOpenChange,conversations }) {
   // Fetch network users for the search
   const { data: networkData, isLoading } = useQuery({
     queryKey: ["network", searchQuery],
-    queryFn: () => networkService.getNetwork({ search: searchQuery || undefined }),
+    queryFn: () =>
+      networkService.getNetwork({ search: searchQuery || undefined }),
     enabled: open,
     staleTime: 30 * 1000,
   });
 
- // Replace the existing users filter with:
-const users = (() => {
-  const raw = networkData?.data || [];
-  const seen = new Set();
-  const uniqueUsers = raw.filter((u) => {
-    if (seen.has(u.userId)) return false;
-    seen.add(u.userId);
-    return true;
-  });
-  
-  // Only show ACCEPTED connections that don't have existing conversations
-  const chattedUserIds = new Set(
-    conversations
-      ?.filter(conv => conv.type === "DIRECT" && conv.lastMessage !== null)
-      .map(conv => conv.userId) || []
-  );
-  
-  return uniqueUsers.filter(user => 
-    user.connectionStatus === "ACCEPTED" && 
-    !chattedUserIds.has(user.userId)
-  );
-})();
+  // Replace the existing users filter with:
+  const users = (() => {
+    const raw = networkData?.data || [];
+    const seen = new Set();
+    const uniqueUsers = raw.filter((u) => {
+      if (seen.has(u.userId)) return false;
+      seen.add(u.userId);
+      return true;
+    });
+
+    // Only show ACCEPTED connections that don't have existing conversations
+    const chattedUserIds = new Set(
+      conversations
+        ?.filter((conv) => conv.type === "DIRECT" && conv.lastMessage !== null)
+        .map((conv) => conv.userId) || [],
+    );
+
+    return uniqueUsers.filter(
+      (user) =>
+        user.connectionStatus === "ACCEPTED" &&
+        !chattedUserIds.has(user.userId),
+    );
+  })();
 
   console.log(users, "network users for messaging");
 
   // Filter by search
   const filteredUsers = searchQuery.trim()
     ? users.filter((u) => {
-        const name = `${u.firstName || ""} ${u.lastName || ""} ${u.name || ""}`.toLowerCase();
+        const name =
+          `${u.firstName || ""} ${u.lastName || ""} ${u.name || ""}`.toLowerCase();
         return name.includes(searchQuery.toLowerCase());
       })
     : users;
@@ -89,13 +97,14 @@ const users = (() => {
     sendInvitation(
       {
         recipientId: userId,
-        shortMessage: shortMessage.trim() || "Hi, I'd like to connect with you!",
+        shortMessage:
+          shortMessage.trim() || "Hi, I'd like to connect with you!",
       },
       {
         onSuccess: () => {
           handleClose();
         },
-      }
+      },
     );
   };
 
@@ -114,7 +123,10 @@ const users = (() => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : handleClose())}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => (v ? onOpenChange(v) : handleClose())}
+    >
       <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
@@ -159,7 +171,9 @@ const users = (() => {
                 </p>
               ) : (
                 filteredUsers.slice(0, 20).map((user) => {
-                  const fullName = user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim();
+                  const fullName =
+                    user.name ||
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim();
                   const avatar = user.profileImageUrl || user.avatar || null;
 
                   let role = "";
@@ -183,9 +197,13 @@ const users = (() => {
                         <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{fullName}</p>
+                        <p className="text-sm font-medium truncate">
+                          {fullName}
+                        </p>
                         {role && (
-                          <p className="text-xs text-muted-foreground truncate">{role}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {role}
+                          </p>
                         )}
                       </div>
                     </button>
@@ -206,7 +224,7 @@ const users = (() => {
                 <AvatarFallback>
                   {getInitials(
                     selectedUser?.name ||
-                      `${selectedUser?.firstName || ""} ${selectedUser?.lastName || ""}`
+                      `${selectedUser?.firstName || ""} ${selectedUser?.lastName || ""}`,
                   )}
                 </AvatarFallback>
               </Avatar>
@@ -228,7 +246,12 @@ const users = (() => {
             />
 
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={handleBack} disabled={isPending}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleBack}
+                disabled={isPending}
+              >
                 Back
               </Button>
               <Button
