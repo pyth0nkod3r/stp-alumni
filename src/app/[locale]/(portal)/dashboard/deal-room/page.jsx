@@ -14,6 +14,7 @@ const DealRoom = () => {
     searchQuery,
     sortBy,
     isLoading,
+    currentUserId,
     setSearchQuery,
     setSortBy,
     selectRoom,
@@ -81,6 +82,7 @@ const DealRoom = () => {
             <DealRoomView
               room={selectedRoom}
               messages={currentMessages}
+              currentUserId={currentUserId}
               onBack={handleBack}
               onSendMessage={sendMessage}
               onRetryMessage={retryMessage}

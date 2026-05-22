@@ -324,6 +324,7 @@ export function useDealRoom() {
     sortBy,
     isLoading: convsLoading,
     isMessagesLoading: msgsLoading,
+    currentUserId,
 
     // Actions
     setSearchQuery,
