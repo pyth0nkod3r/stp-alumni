@@ -62,6 +62,7 @@ export const usePostsFeed = () => {
     queryFn: async () => {
       const data = await postService.getPosts();
       const raw = Array.isArray(data) ? data : data?.data || [];
+      console.log(raw,"raw")
       const posts = raw.map(normalizePost);
       setPosts(posts);
       return posts;

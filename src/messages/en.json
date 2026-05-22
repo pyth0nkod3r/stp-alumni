@@ -102,10 +102,27 @@
     "inviteOnly": "This platform is invite-only. Contact your administrator if you need access.",
     "forgotPassword": "Forgot Password?"
   },
-  "PasswordBanner": {
-    "message": "You're using a temporary password. Please change it as soon as possible.",
-    "changeNow": "Change now",
-    "dismiss": "Dismiss"
+   "PasswordBanner": {
+    "mandatoryTitle": "Password Change Required",
+    "mandatoryMessage": "You must change your temporary password before continuing",
+    "changePassword": "Change Your Password",
+    "changePasswordDesc": "Please create a new secure password",
+    "oldPassword": "Current Password",
+    "oldPasswordPlaceholder": "Enter your temporary password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password (min. 8 characters)",
+    "confirmPassword": "Confirm New Password",
+    "confirmPasswordPlaceholder": "Confirm your new password",
+    "updatePassword": "Update Password",
+    "updating": "Updating...",
+    "passwordChanged": "Password changed successfully!",
+    "passwordError": "Failed to change password. Please try again.",
+    "fillAllFields": "Please fill in all fields",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordSameAsOld": "New password must be different from current password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordStrengthError": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
   },
   "ProfileSetup": {
     "title": "Complete Your Profile",
@@ -398,6 +415,7 @@
     "fillAllFields": "Please fill in all fields",
     "passwordMinLength": "Password must be at least 8 characters",
     "passwordSameAsOld": "New password must be different from the current one",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "passwordStrengthError": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)"
   }
 }

@@ -5,6 +5,7 @@ import userService from "@/lib/services/userService";
 import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import React, { useState } from "react";
+import { toast } from "sonner";
 
 function SecurityTab({ t, updateUser }) {
   const [oldPassword, setOldPassword] = useState("");
@@ -46,6 +47,13 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       toast.error(t("passwordMismatch"));
       return;
     }
+
+     // Password strength validation
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(newPassword)) {
+    toast.error(t("passwordStrengthError"));
+    return;
+  }
     changePasswordMutation.mutate({ oldPassword, newPassword });
   };
 
