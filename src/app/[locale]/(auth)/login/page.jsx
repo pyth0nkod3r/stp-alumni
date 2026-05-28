@@ -81,7 +81,7 @@ export default function LoginPage() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#155DFC]/30 to-[#155DFC]/60" />
+          <div className="absolute inset-0 bg-linear-to-b from-transparent via-[#155DFC]/30 to-[#155DFC]/60" />
         </div>
       </div>
 

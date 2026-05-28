@@ -11,6 +11,7 @@ import {
   Plus,
   Send,
   Loader2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,7 +84,7 @@ function CommentModal({ open, onClose, post }) {
   } = usePostComments(post?.id);
 
   const comments = data?.data || [];
-  console.log(comments,"comments")
+  // console.log(comments,"comments")
 
   // POST a new comment
   const { mutate: addComment, isPending: isSubmitting } = useCommentPost();
@@ -259,18 +260,18 @@ export default function PostCard({
   const dropdownRef = useRef(null);
 
   const [isExpanded, setIsExpanded] = useState(false);
-const [showReadMore, setShowReadMore] = useState(false);
-const contentRef = useRef(null);
+  const [showReadMore, setShowReadMore] = useState(false);
+  const contentRef = useRef(null);
 
-useEffect(() => {
-  // Check if content exceeds limit (e.g., 200 characters or 30 words)
-  const content = post.body || post.content || "";
-  const wordCount = content.split(/\s+/).length;
-  const charCount = content.length;
-  
-  // Adjust threshold as needed (example: 200 chars OR 30 words)
-  setShowReadMore(charCount > 200 || wordCount > 30);
-}, [post.body, post.content]);
+  useEffect(() => {
+    // Check if content exceeds limit (e.g., 200 characters or 30 words)
+    const content = post.body || post.content || "";
+    const wordCount = content.split(/\s+/).length;
+    const charCount = content.length;
+
+    // Adjust threshold as needed (example: 200 chars OR 30 words)
+    setShowReadMore(charCount > 200 || wordCount > 30);
+  }, [post.body, post.content]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -346,7 +347,8 @@ useEffect(() => {
 
           <div className="flex items-center gap-2 relative">
             {/* Follow Button */}
-            {!post.author?.isFollowing && onFollow && (
+            {/* Follow Button with different states */}
+            {post.connectionStatus === null && (
               <Button
                 variant="outline"
                 size="sm"
@@ -358,6 +360,29 @@ useEffect(() => {
               </Button>
             )}
 
+            {post.connectionStatus === "PENDING" && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="text-gray-500 border-gray-300 bg-gray-50"
+              >
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                {t("pending")}
+              </Button>
+            )}
+
+            {post.connectionStatus === "ACCEPTED" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                // onClick={handleUnfollow}
+                className="text-gray-600 hover:text-red-600 hover:bg-red-50"
+              >
+                <Check className="h-4 w-4 mr-1" />
+                {t("following")}
+              </Button>
+            )}
             {/* Three-dot Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button

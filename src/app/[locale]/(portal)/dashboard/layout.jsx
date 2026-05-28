@@ -6,7 +6,6 @@ import UserHeader from "../user-header";
 import OnboardingGuard from "@/components/shared/OnboardingGuard";
 import { usePathname } from "@/i18n/routing";
 import useAuthStore from "@/lib/store/useAuthStore";
-import PasswordChangeOverlay from "@/components/shared/PasswordChangeBanner";
 
 export default function PortalLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -17,7 +16,7 @@ export default function PortalLayout({ children }) {
   return (
     <OnboardingGuard>
       <div className="flex min-h-screen bg-[#E8ECF4]">
-        <PasswordChangeOverlay />
+        
         
         <Sidebar isCollapsed={isCollapsed} />
 

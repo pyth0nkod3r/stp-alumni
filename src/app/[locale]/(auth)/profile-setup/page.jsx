@@ -196,7 +196,7 @@ export default function ProfileSetupPage() {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center pl-0 pr-4 py-8 sticky top-0 h-screen">
         <div className="relative w-full h-full rounded-2xl overflow-hidden">
           <Image
-            src="/assets/Profile setup.jpg"
+            src="/stp-20.jpg"
             alt="Profile setup background"
             fill
             className="object-cover"

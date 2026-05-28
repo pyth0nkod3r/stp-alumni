@@ -204,10 +204,8 @@
     "eventDate": "Mon, Dec 8, 2025, 11:00 AM",
     "eventTitle": "2025 Drive for the Driven Golf Tournament",
     "invitedYou": "invited you to connect with them",
-    "message1": "do you want to get more information",
-    "message2": "i'll be sending it soon seunsa!",
-    "message3": "James, hello good morning",
-    "message4": "yo yo, i'd like you to know"
+    "pending": "Pending",
+    "following": "Connected"
   },
   "Everything": {
     "headingMain": "Everything you need to",

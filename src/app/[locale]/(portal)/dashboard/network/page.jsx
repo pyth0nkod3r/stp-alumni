@@ -23,15 +23,18 @@ import { NetworkSearch } from "./(components)/NetworkSearch";
 import { PeopleConnection } from "./(components)/PeopleConnection";
 import ConnectedUser from "./(components)/ConnectedUser";
 import ConnectionSkeleton from "./(components)/ConnectionSkeleton";
+import { useSearchParams } from "next/navigation";
 // import { PeopleSuggestions } from "./(components)/PeopleSuggestions";
 // import { PeopleConnection } from "./(components)/PeopleConnection";
 
 const Page = () => {
   const { setNetworkData, setLoading, setError } = useNetworkStore();
+   const searchParams = useSearchParams();
+    const active = searchParams.get("active");
 
   const [search, setSearch] = useState("");
   const [activeSector, setActiveSector] = useState("all");
-  const [activeTab, setActiveTab] = useState("mine");
+  const [activeTab, setActiveTab] = useState(active || "mine");
 
   // Fetch all custom lists (networkUsers, sameSkillUsers, sameSectorUsers, connections)
   const {
