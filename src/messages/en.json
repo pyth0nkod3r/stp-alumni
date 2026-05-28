@@ -122,7 +122,14 @@
     "passwordSameAsOld": "New password must be different from current password",
     "passwordMismatch": "Passwords do not match",
     "passwordStrengthError": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)",
-    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "passwordHint":"Password must contain at least 8 characters, including uppercase, lowercase, number, and special character",
+    "minLength": "At least 8 characters",
+"uppercase": "Uppercase letter", 
+"lowercase": "Lowercase letter",
+"number": "Number",
+"specialChar": "Special character (@$!%*?&)",
+"passwordsMatch": "Passwords match!"
   },
   "ProfileSetup": {
     "title": "Complete Your Profile",

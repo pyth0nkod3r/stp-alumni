@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Lock, Eye, EyeOff, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,12 +28,29 @@ export default function PasswordChangeOverlay() {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Error states for each field
+  const [oldPasswordError, setOldPasswordError] = useState("");
+  const [newPasswordError, setNewPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  
+  // Validation state for password strength indicators
+  const [passwordStrength, setPasswordStrength] = useState({
+    hasMinLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    hasSpecialChar: false
+  });
+
+  // Debounce timeouts
+  const newPasswordTimeoutRef = useRef(null);
+  const confirmPasswordTimeoutRef = useRef(null);
 
   // Handle route changes - stay on current page, don't navigate away
   useEffect(() => {
     if (!passwordChangeRequired) return;
 
-    // Intercept navigation attempts
     const handleBeforeUnload = (e) => {
       e.preventDefault();
       e.returnValue = t("unsavedChanges");
@@ -56,6 +73,131 @@ export default function PasswordChangeOverlay() {
     }
   }, [passwordChangeRequired]);
 
+  // Real-time validation functions
+  const validateOldPassword = useCallback((value) => {
+    if (!value) {
+      setOldPasswordError(t("fillAllFields"));
+      return false;
+    }
+    setOldPasswordError("");
+    return true;
+  }, [t]);
+
+  const validatePasswordStrength = useCallback((password) => {
+    const strength = {
+      hasMinLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[@$!%*?&]/.test(password)
+    };
+    setPasswordStrength(strength);
+    return strength;
+  }, []);
+
+  const validateNewPassword = useCallback((password, oldPwd = oldPassword) => {
+    if (!password) {
+      setNewPasswordError(t("fillAllFields"));
+      return false;
+    }
+    
+    if (password.length < 8) {
+      setNewPasswordError(t("passwordMinLength"));
+      return false;
+    }
+    
+    if (password === oldPwd) {
+      setNewPasswordError(t("passwordSameAsOld"));
+      return false;
+    }
+    
+    const strength = validatePasswordStrength(password);
+    const isStrong = strength.hasMinLength && strength.hasUpperCase && 
+                     strength.hasLowerCase && strength.hasNumber && strength.hasSpecialChar;
+    
+    if (!isStrong) {
+      setNewPasswordError(t("passwordStrengthError"));
+      return false;
+    }
+    
+    setNewPasswordError("");
+    return true;
+  }, [oldPassword, t, validatePasswordStrength]);
+
+  const validateConfirmPassword = useCallback((confirm, newPwd = newPassword) => {
+    if (!confirm) {
+      setConfirmPasswordError(t("fillAllFields"));
+      return false;
+    }
+    
+    if (confirm !== newPwd) {
+      setConfirmPasswordError(t("passwordMismatch"));
+      return false;
+    }
+    
+    setConfirmPasswordError("");
+    return true;
+  }, [newPassword, t]);
+
+  // Debounced validation for new password
+  const debouncedValidateNewPassword = useCallback((value) => {
+    if (newPasswordTimeoutRef.current) {
+      clearTimeout(newPasswordTimeoutRef.current);
+    }
+    
+    newPasswordTimeoutRef.current = setTimeout(() => {
+      validateNewPassword(value);
+    }, 500);
+  }, [validateNewPassword]);
+
+  // Debounced validation for confirm password
+  const debouncedValidateConfirmPassword = useCallback((value) => {
+    if (confirmPasswordTimeoutRef.current) {
+      clearTimeout(confirmPasswordTimeoutRef.current);
+    }
+    
+    confirmPasswordTimeoutRef.current = setTimeout(() => {
+      validateConfirmPassword(value);
+    }, 500);
+  }, [validateConfirmPassword]);
+
+  // Handle input changes with real-time validation
+  const handleOldPasswordChange = (e) => {
+    const value = e.target.value;
+    setOldPassword(value);
+    validateOldPassword(value);
+  };
+
+  const handleNewPasswordChange = (e) => {
+    const value = e.target.value;
+    setNewPassword(value);
+    validatePasswordStrength(value);
+    debouncedValidateNewPassword(value);
+    
+    // Also re-validate confirm password if it has a value
+    if (confirmPassword) {
+      debouncedValidateConfirmPassword(confirmPassword);
+    }
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
+    debouncedValidateConfirmPassword(value);
+  };
+
+  // Clear timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (newPasswordTimeoutRef.current) {
+        clearTimeout(newPasswordTimeoutRef.current);
+      }
+      if (confirmPasswordTimeoutRef.current) {
+        clearTimeout(confirmPasswordTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const changePasswordMutation = useMutation({
     mutationFn: userService.changePassword,
     onSuccess: () => {
@@ -64,45 +206,61 @@ export default function PasswordChangeOverlay() {
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setOldPasswordError("");
+      setNewPasswordError("");
+      setConfirmPasswordError("");
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || t("passwordError"));
+      const errorMessage = error.response?.data?.message || t("passwordError");
+      setOldPasswordError(errorMessage);
     },
   });
 
-const handleSubmit = (e) => {
-  e.preventDefault();
+  const validateForm = () => {
+    const isOldPasswordValid = validateOldPassword(oldPassword);
+    const isNewPasswordValid = validateNewPassword(newPassword);
+    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+    
+    return isOldPasswordValid && isNewPasswordValid && isConfirmPasswordValid;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      changePasswordMutation.mutate({ oldPassword, newPassword });
+    }
+  };
   
-  if (!oldPassword || !newPassword || !confirmPassword) {
-    toast.error(t("fillAllFields"));
-    return;
-  }
-  
-  if (newPassword.length < 8) {
-    toast.error(t("passwordMinLength"));
-    return;
-  }
-  
-  if (newPassword === oldPassword) {
-    toast.error(t("passwordSameAsOld"));
-    return;
-  }
-  
-  if (newPassword !== confirmPassword) {
-    toast.error(t("passwordMismatch"));
-    return;
-  }
-  
-  // Password strength validation
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (!passwordRegex.test(newPassword)) {
-    toast.error(t("passwordStrengthError"));
-    return;
-  }
-  
-  changePasswordMutation.mutate({ oldPassword, newPassword });
-};
   if (!passwordChangeRequired) return null;
+
+  // Password strength indicator component
+  const PasswordStrengthIndicator = () => {
+    const requirements = [
+      { key: 'hasMinLength', label: t('minLength') || 'At least 8 characters' },
+      { key: 'hasUpperCase', label: t('uppercase') || 'Uppercase letter' },
+      { key: 'hasLowerCase', label: t('lowercase') || 'Lowercase letter' },
+      { key: 'hasNumber', label: t('number') || 'Number' },
+      { key: 'hasSpecialChar', label: t('specialChar') || 'Special character (@$!%*?&)' }
+    ];
+
+    return (
+      <div className="mt-2 space-y-1">
+        {requirements.map((req) => (
+          <div key={req.key} className="flex items-center gap-2 text-xs">
+            {passwordStrength[req.key] ? (
+              <CheckCircle className="h-3 w-3 text-green-500" />
+            ) : (
+              <div className="h-3 w-3 rounded-full border border-gray-300" />
+            )}
+            <span className={passwordStrength[req.key] ? "text-green-600" : "text-gray-500"}>
+              {req.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -115,9 +273,9 @@ const handleSubmit = (e) => {
       {/* Overlay Content - positioned to not cover the sidebar */}
       <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none">
         <div className="relative w-full max-w-lg mx-4 pointer-events-auto animate-in fade-in zoom-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl">
+          <div className="bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* Header with warning */}
-            <div className="flex items-center gap-3 p-6 pb-4 border-b border-amber-200 bg-amber-50/50 rounded-t-2xl">
+            <div className="flex items-center gap-3 p-6 pb-4 border-b border-amber-200 bg-amber-50/50 rounded-t-2xl sticky top-0 bg-white z-10">
               <div className="p-2 bg-amber-100 rounded-full">
                 <AlertTriangle className="h-6 w-6 text-amber-600" />
               </div>
@@ -157,10 +315,10 @@ const handleSubmit = (e) => {
                       id="oldPassword"
                       type={showOldPassword ? "text" : "password"}
                       value={oldPassword}
-                      onChange={(e) => setOldPassword(e.target.value)}
+                      onChange={handleOldPasswordChange}
                       placeholder={t("oldPasswordPlaceholder")}
                       disabled={changePasswordMutation.isPending}
-                      className="w-full pr-10"
+                      className={`w-full pr-10 ${oldPasswordError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                       autoFocus
                     />
                     <button
@@ -171,6 +329,12 @@ const handleSubmit = (e) => {
                       {showOldPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  {oldPasswordError && (
+                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {oldPasswordError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -182,10 +346,10 @@ const handleSubmit = (e) => {
                       id="newPassword"
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      onChange={handleNewPasswordChange}
                       placeholder={t("newPasswordPlaceholder")}
                       disabled={changePasswordMutation.isPending}
-                      className="w-full pr-10"
+                      className={`w-full pr-10 ${newPasswordError ? "border-red-500 focus-visible:ring-red-500" : newPassword ? "border-green-500" : ""}`}
                     />
                     <button
                       type="button"
@@ -195,6 +359,18 @@ const handleSubmit = (e) => {
                       {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  
+                  {/* Password strength indicator */}
+                  {newPassword && !newPasswordError && (
+                    <PasswordStrengthIndicator />
+                  )}
+                  
+                  {newPasswordError && (
+                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {newPasswordError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -206,10 +382,10 @@ const handleSubmit = (e) => {
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={handleConfirmPasswordChange}
                       placeholder={t("confirmPasswordPlaceholder")}
                       disabled={changePasswordMutation.isPending}
-                      className="w-full pr-10"
+                      className={`w-full pr-10 ${confirmPasswordError ? "border-red-500 focus-visible:ring-red-500" : confirmPassword && !confirmPasswordError ? "border-green-500" : ""}`}
                     />
                     <button
                       type="button"
@@ -219,11 +395,27 @@ const handleSubmit = (e) => {
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                  {confirmPasswordError && (
+                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {confirmPasswordError}
+                    </p>
+                  )}
+                  {confirmPassword && !confirmPasswordError && newPassword && (
+                    <p className="mt-1 text-sm text-green-500 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      {t("passwordsMatch") || "Passwords match!"}
+                    </p>
+                  )}
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={changePasswordMutation.isPending}
+                  disabled={changePasswordMutation.isPending || 
+                           !oldPassword || 
+                           !!newPasswordError || 
+                           !!confirmPasswordError ||
+                           !newPassword}
                   className="w-full h-11 bg-[#155DFC] hover:bg-[#155DFC]/90 text-white mt-4"
                 >
                   {changePasswordMutation.isPending ? t("updating") : t("updatePassword")}

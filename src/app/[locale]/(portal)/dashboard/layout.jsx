@@ -23,14 +23,14 @@ export default function PortalLayout({ children }) {
         <main 
           className={`relative flex-1 flex flex-col ${isMessaging ? "pb-20 md:pb-0":"pb-20"} transition-all duration-300 ${
             isCollapsed ? "lg:ml-20" : "lg:ml-60"
-          } ml-0 ${passwordChangeRequired ? "pointer-events-none" : ""}`}
+          } ml-0 `}
         >
           <UserHeader 
             toggleSidebar={() => setIsCollapsed(!isCollapsed)} 
             isCollapsed={isCollapsed} 
           />
           
-          <div className={`flex-1 sm:p-4 lg:p-6 ${passwordChangeRequired ? "blur-sm" : ""}`}>
+          <div className={`flex-1 sm:p-4 lg:p-6`}>
             {children}
           </div>
         </main>
