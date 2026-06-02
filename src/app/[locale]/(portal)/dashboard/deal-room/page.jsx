@@ -1,10 +1,11 @@
-"use client"
+"use client";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DealRoomView } from "./DealRoomView";
 import { DealRoomList } from "./DealRoomList";
 import { useDealRoom } from "./useDealRoom";
 import { CreateDealRoomModal } from "./CreateDealRoomModal";
+import { useNavbar } from "@/contexts/NavbarContext";
 
 const DealRoom = () => {
   const {
@@ -13,49 +14,50 @@ const DealRoom = () => {
     currentMessages,
     searchQuery,
     sortBy,
-    isLoading,
+    roomsLoading,
+    isRoomDetailLoading,
     currentUserId,
+    typingUsers,
+    isDeletePending,
     setSearchQuery,
     setSortBy,
     selectRoom,
     sendMessage,
-    retryMessage,
+    sendTyping,
     deleteMessage,
-    updateRoomName,
-    deleteRoom,
     addMember,
     removeMember,
+    uploadFile,
     createRoom,
   } = useDealRoom();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const handleBack = () => {
-    selectRoom(null);
-  };
-
-  const handleCreateRoomClick = () => {
-    setIsCreateModalOpen(true);
-  };
-
   const handleCreateRoom = async (payload) => {
     const newRoom = await createRoom(payload);
-    if (newRoom) {
-      selectRoom(newRoom.id);
-    }
+    if (newRoom) selectRoom(newRoom.id);
     setIsCreateModalOpen(false);
   };
 
-  // console.log(rooms[0],"rooms")
+    const {
+      userSize: { height },
+      mobileSize: { height: mobileHeight },
+    } = useNavbar();
 
   return (
     <>
-      <div className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-2rem)] flex bg-background">
-        {/* Room List - hidden on mobile when chat is open */}
+      <div
+        className=" flex bg-background"
+        style={{
+          // top: `${height + 10}px`,
+          height: `calc(100dvh - ${height + mobileHeight + 30}px)`,
+        }}
+      >
+        {/* Room list */}
         <div
           className={cn(
-            "w-full lg:w-100 border-r border-border shrink-0",
-            selectedRoom ? "hidden lg:flex" : "flex"
+            "w-full lg:w-96 border-r border-border shrink-0",
+            selectedRoom ? "hidden lg:flex" : "flex",
           )}
         >
           <DealRoomList
@@ -63,19 +65,19 @@ const DealRoom = () => {
             selectedId={selectedRoom?.id}
             searchQuery={searchQuery}
             sortBy={sortBy}
-            isLoading={isLoading}
+            isLoading={roomsLoading}
             onSearchChange={setSearchQuery}
             onSortChange={setSortBy}
-            onSelect={(room) => selectRoom(room.id)}
-            onCreateRoom={handleCreateRoomClick}
+            onSelect={(room) => selectRoom(room.roomId || room.id)}
+            onCreateRoom={() => setIsCreateModalOpen(true)}
           />
         </div>
 
-        {/* Room View - full width on mobile */}
+        {/* Room view */}
         <div
           className={cn(
-            "flex-1 flex flex-col",
-            !selectedRoom ? "hidden lg:flex" : "flex"
+            "flex-1 flex flex-col min-w-0",
+            !selectedRoom ? "hidden lg:flex" : "flex",
           )}
         >
           {selectedRoom ? (
@@ -83,21 +85,24 @@ const DealRoom = () => {
               room={selectedRoom}
               messages={currentMessages}
               currentUserId={currentUserId}
-              onBack={handleBack}
+              roomsLoading={roomsLoading}
+              isRoomDetailLoading={isRoomDetailLoading}
+              isDeletePending={isDeletePending}
+              typingUsers={typingUsers}
+              onBack={() => selectRoom(null)}
               onSendMessage={sendMessage}
-              onRetryMessage={retryMessage}
+              onSendTyping={sendTyping}
               onDeleteMessage={deleteMessage}
-              onUpdateRoomName={updateRoomName}
-              onDeleteRoom={deleteRoom}
               onAddMember={addMember}
               onRemoveMember={removeMember}
+              onUploadFile={uploadFile}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                   <svg
-                    className="h-8 w-8 text-muted-foreground"
+                    className="h-7 w-7 text-muted-foreground opacity-50"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -110,13 +115,16 @@ const DealRoom = () => {
                     />
                   </svg>
                 </div>
-                <p className="font-medium">Select a room</p>
-                <p className="text-sm mt-1">Choose from your existing deal rooms</p>
+                <p className="font-medium text-sm">Select a deal room</p>
+                <p className="text-xs mt-1 opacity-60">
+                  Choose from your existing rooms
+                </p>
               </div>
             </div>
           )}
         </div>
       </div>
+
       <CreateDealRoomModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}

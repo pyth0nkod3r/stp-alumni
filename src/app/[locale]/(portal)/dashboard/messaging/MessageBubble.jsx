@@ -109,6 +109,7 @@ export function MessageBubble({
   senderName,
   onRetry,
   onDelete,
+  isDeletePending
 }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const isFailed = message.status === "failed";
@@ -116,6 +117,8 @@ export function MessageBubble({
     message.createdAt instanceof Date
       ? message.createdAt
       : new Date(message.createdAt);
+
+      console.log(message,"message in bubble")
 
   return (
     <>
@@ -241,11 +244,19 @@ export function MessageBubble({
             <AlertDialogAction
               className="bg-stp-blue-light hover:bg-destructive/90 text-white"
               onClick={() => {
-                onDelete();
-                setShowDeleteDialog(false);
+                onDelete(() => {
+                  setShowDeleteDialog(false);
+                });
               }}
             >
-              Delete
+              {isDeletePending ? (
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </div>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

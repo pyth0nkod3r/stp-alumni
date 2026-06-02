@@ -9,9 +9,10 @@ import useAuthStore from "@/lib/store/useAuthStore";
 
 export default function PortalLayout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const passwordChangeRequired = useAuthStore((state) => state.passwordChangeRequired);
+  // const passwordChangeRequired = useAuthStore((state) => state.passwordChangeRequired);
   const pathname = usePathname()
   const isMessaging = pathname.includes("messaging")
+  const isDealroom = pathname.includes("deal-room")
 
   return (
     <OnboardingGuard>
@@ -21,7 +22,7 @@ export default function PortalLayout({ children }) {
         <Sidebar isCollapsed={isCollapsed} />
 
         <main 
-          className={`relative flex-1 flex flex-col ${isMessaging ? "pb-20 md:pb-0":"pb-20"} transition-all duration-300 ${
+          className={`relative flex-1 flex flex-col ${(isMessaging || isDealroom) ? "pb-20 md:pb-0":"pb-20"} transition-all duration-300 ${
             isCollapsed ? "lg:ml-20" : "lg:ml-60"
           } ml-0 `}
         >

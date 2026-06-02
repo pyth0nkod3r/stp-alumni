@@ -117,7 +117,7 @@ export function DealRoomList({
         ) : (
           <div className="divide-y divide-border">
             {rooms?.map((room) => {
-              console.log(room,"room")
+              // console.log(room,"room")
               return(
               <button
                 key={room.id}

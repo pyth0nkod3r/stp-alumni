@@ -30,7 +30,7 @@ function SidebarWidgets({ t, height }) {
   // Fetch your network data
   const { data: networkData, isLoading: isLoadingNetwork } = useQuery({
     queryKey: ["network"],
-    queryFn: () => networkService.getNetwork(),
+    queryFn: () => networkService.getConnections(),
   });
 
   // Fetch invitations/connections data
@@ -43,7 +43,7 @@ function SidebarWidgets({ t, height }) {
 
   // Parse mapped network payload safely
   const networkContacts = networkData?.data || networkData || {};
-  console.log("networkContacts", networkContacts);
+  // console.log("networkContacts", networkContacts.filter((ele) => ele.connectionStatus === "ACCEPTED"));
 
   // Parse mapped invitations safely (assuming response is array or .data array)
   // Filtering loosely for "pending" status if available; else relying on API struct
@@ -84,7 +84,7 @@ function SidebarWidgets({ t, height }) {
                 {t("yourNetwork")}
               </h3>
 
-              <>
+              <div className="space-y-3">
                 {/* <div className="bg-white rounded-lg p-4 lg:p-6"> */}
                 {isLoadingNetwork ? (
                   <div className="flex justify-center p-4">
@@ -92,8 +92,8 @@ function SidebarWidgets({ t, height }) {
                   </div>
                 ) : networkContacts.length > 0 ? (
                   networkContacts
-                    .slice(0, 5)
-                    .filter((ele) => ele.connectionStatus === "ACCEPTED")
+                  // .filter((ele) => ele.connectionStatus === "ACCEPTED")
+                  .slice(0, 5)
                     .map((contact, index) => (
                       <ConnectedUser contact={contact} index={index} />
                     ))
@@ -102,7 +102,7 @@ function SidebarWidgets({ t, height }) {
                     Go connect to build your network!
                   </div>
                 )}
-              </>
+              </div>
             </div>
           </div>
 
@@ -301,13 +301,13 @@ function ConnectedUser({contact, index}) {
               </p>
             </Link>
             <p className="text-xs text-gray-600 truncate">
-              {contact.role || contact.email || "Member"}
+              {contact.title || contact.email || "Member"}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {contact.connectionStatus === "ACCEPTED" && (
+          {contact.status === "ACCEPTED" && (
             <button
               className="p-1 hover:bg-gray-100 rounded"
               onClick={() => handleMessage(contact.userId)}
@@ -320,7 +320,7 @@ function ConnectedUser({contact, index}) {
               )}
             </button>
           )}
-          {contact.connectionStatus === null && (
+          {contact.status === null && (
             <button className="p-1 hover:bg-gray-100 rounded">
               <MoreHorizontal className="h-4 w-4 text-[#233389]" />
             </button>

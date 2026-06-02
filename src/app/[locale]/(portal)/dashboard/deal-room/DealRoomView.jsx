@@ -1,22 +1,18 @@
-import { useState, useRef, useEffect } from "react";
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   ArrowLeft,
   MoreHorizontal,
-  Smile,
   Paperclip,
-  Image,
-  Mic,
   Send,
   Pencil,
   Users,
-  Trash2,
   FileText,
-  AlertTriangle,
-  CheckCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,132 +26,116 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "../messaging/MessageBubble";
 import { formatMessageDate, groupMessagesByDate } from "@/lib/helper";
 
+import MembersModal from "./MembersModal";
+import { ModernScrollArea } from "@/components/shared/ScrollArea";
+import DocumentsModal from "./DocumentsModal";
+import NDAOverlay from "./NDAOverlay";
+
+
+// ─── Typing Indicator ────────────────────────────────────────────────────────
+
+function TypingIndicator({ users }) {
+  if (!users?.length) return null;
+  const names = users.map((u) => u.name).join(", ");
+  return (
+    <div className="flex items-center gap-2 px-4 py-1 text-xs text-muted-foreground">
+      <div className="flex gap-0.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce"
+            style={{ animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </div>
+      <span>
+        {names} {users.length === 1 ? "is" : "are"} typing…
+      </span>
+    </div>
+  );
+}
+
+
+// ─── Main DealRoomView ────────────────────────────────────────────────────────
+
 export function DealRoomView({
   room,
   messages,
   currentUserId,
+  typingUsers = [],
+  isDeletePending,
+  isRoomDetailLoading,
   onBack,
   onSendMessage,
-  onRetryMessage,
+  onSendTyping,
   onDeleteMessage,
-  onUpdateRoomName,
-  onDeleteRoom,
   onAddMember,
   onRemoveMember,
+  onUploadFile,
 }) {
   const [newMessage, setNewMessage] = useState("");
   const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editNameValue, setEditNameValue] = useState(room?.roomName || "");
   const [membersOpen, setMembersOpen] = useState(false);
   const [documentsOpen, setDocumentsOpen] = useState(false);
-  const [editNameValue, setEditNameValue] = useState(room.roomName || "");
-  const [addMemberSearch, setAddMemberSearch] = useState("");
-
-  const [hasAcknowledgedNDA, setHasAcknowledgedNDA] = useState(false);
-  const [showNDABanner, setShowNDABanner] = useState(true);
-
-  const [showAcknowledgedMessage, setShowAcknowledgedMessage] = useState(false);
-  const [progress, setProgress] = useState(100);
-  const progressTimerRef = useRef(null);
-  const hideTimerRef = useRef(null);
-
-  const handleAcknowledgeNDA = () => {
-    localStorage.setItem(
-      `nda_acknowledged_${room.id}_${currentUserId}`,
-      "true",
-    );
-    setHasAcknowledgedNDA(true);
-    setShowNDABanner(false);
-
-    // Show the success message with progress bar
-    setShowAcknowledgedMessage(true);
-    setProgress(100);
-
-    // Clear any existing timers
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-
-    // Start progress bar countdown
-    const startTime = Date.now();
-    const duration = 5000; // 5 seconds
-
-    progressTimerRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, ((duration - elapsed) / duration) * 100);
-      setProgress(remaining);
-
-      if (remaining <= 0) {
-        clearInterval(progressTimerRef.current);
-      }
-    }, 16); // Update roughly every frame (60fps)
-
-    // Hide the message after 5 seconds
-    hideTimerRef.current = setTimeout(() => {
-      setShowAcknowledgedMessage(false);
-      setProgress(100);
-      clearInterval(progressTimerRef.current);
-    }, duration);
-
-    // Optional: Send a system message that user acknowledged
-    // onSendMessage(`[System] ${currentUser.name} has acknowledged the confidentiality agreement`);
-  };
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
-  }, []);
+  const [ndaSigned, setNdaSigned] = useState(room?.hasSignedNda);
 
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+   const messagesEndRef = useRef(null);
 
-  const onlineCount = room.onlineCount ?? room.members?.length ?? 0;
-  const members = room.members || [];
-  const documents = room.documents || [];
-
-  // Check if current user has acknowledged NDA for this room
+  // Sync NDA state when room detail loads/changes
   useEffect(() => {
-    const acknowledged = localStorage.getItem(
-      `nda_acknowledged_${room.id}_${currentUserId}`,
-    );
-    if (acknowledged === "true") {
-      setHasAcknowledgedNDA(true);
-      setShowNDABanner(false);
+    if (room?.hasSignedNda !== undefined) {
+      setNdaSigned(room.hasSignedNda);
     }
-  }, [room.id, currentUserId]);
+  }, [room?.hasSignedNda, room?.roomId]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
+    useEffect(() => {
+    if (!isRoomDetailLoading && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+    }
+  }, [room?.roomId, isRoomDetailLoading]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      textareaRef.current.style.height = `${Math.min(
+        textareaRef.current.scrollHeight,
+        120,
+      )}px`;
     }
   }, [newMessage]);
 
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      onSendMessage(newMessage);
-      setNewMessage("");
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
-    }
-  };
+  const handleSend = useCallback(() => {
+    const text = newMessage.trim();
+    if (!text) return;
+    onSendMessage(text);
+    setNewMessage("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  }, [newMessage, onSendMessage]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -164,396 +144,267 @@ export function DealRoomView({
     }
   };
 
-  const handleEditNameOpen = () => {
-    setEditNameValue(room.roomName || "");
-    setEditNameOpen(true);
+  const handleMessageChange = (e) => {
+    setNewMessage(e.target.value);
+    // Debounced typing indicator
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      onSendTyping?.();
+    }, 300);
   };
 
-  const handleEditNameSubmit = () => {
-    if (editNameValue.trim() && editNameValue.trim() !== room.roomName || "") {
-      onUpdateRoomName?.(room.id, editNameValue.trim());
-    }
-    setEditNameOpen(false);
+  const handleFileAttach = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await onUploadFile?.(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleAddMember = () => {
-    if (addMemberSearch.trim()) {
-      // Pass the search string as userId — in a future iteration this
-      // should be a user-search autocomplete that provides real IDs
-      onAddMember?.(room.id, addMemberSearch.trim());
-      setAddMemberSearch("");
-    }
-  };
-
-  const handleDeleteRoom = () => {
-    onDeleteRoom?.(room.id);
-    onBack?.();
-  };
-
-  // Group messages by date
   const messageGroups = groupMessagesByDate(messages);
+  const members = room?.members || [];
+
+  // console.log(ndaSigned,"ndaSigned",isRoomDetailLoading,"isRoomDetailLoading")
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-card">
+    <div className="relative flex flex-col h-full bg-background overflow-hidden">
+      {/* ── NDA Overlay (blocks everything until signed) ── */}
+      {/* {true && ( */}
+       {!isRoomDetailLoading && !ndaSigned  && (
+        <NDAOverlay
+          room={room}
+          currentUserId={currentUserId}
+          onSign={() => setNdaSigned(true)}
+        />
+      )}
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden h-8 w-8"
             onClick={onBack}
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={room.avatar} alt={room.roomName || ""} />
-            <AvatarFallback>
-              {room.roomName || ""
-                .split(" ")
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={room?.avatar} alt={room?.roomName} />
+            <AvatarFallback className="text-xs font-semibold bg-stp-blue-light/10 text-stp-blue-light">
+              {room?.roomName
+                ?.split(" ")
                 .map((n) => n[0])
-                .join("")}
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
-          <div>
-            <h2 className="font-semibold text-foreground">{room.roomName || ""}</h2>
-            <p className="text-sm text-primary">
-              {room.memberCount} member{room.membersCount !== 1 ? "s" : ""}
-            </p>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm text-foreground truncate leading-tight">
+              {room?.roomName}
+            </h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs text-muted-foreground">
+                {room?.memberCount ?? members.length}{" "}
+                {(room?.memberCount ?? members.length) === 1
+                  ? "member"
+                  : "members"}
+              </span>
+              {ndaSigned && (
+                <>
+                  <span className="text-muted-foreground/40 text-xs">·</span>
+                  <span className="flex items-center gap-1 text-xs text-green-600">
+                    <ShieldCheck className="h-3 w-3" />
+                    NDA signed
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Room options">
-              <MoreHorizontal className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleEditNameOpen}>
+            {/* <DropdownMenuItem
+              onClick={() => {
+                setEditNameValue(room?.roomName || "");
+                setEditNameOpen(true);
+              }}
+            >
               <Pencil className="h-4 w-4 mr-2" />
               Edit name
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuItem onClick={() => setMembersOpen(true)}>
               <Users className="h-4 w-4 mr-2" />
-              View members
+              Members
+              {members.length > 0 && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {members.length}
+                </span>
+              )}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setDocumentsOpen(true)}>
               <FileText className="h-4 w-4 mr-2" />
               Documents
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleDeleteRoom}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete deal room
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Edit room name modal */}
+      {/* ── Edit name dialog ── */}
       <Dialog open={editNameOpen} onOpenChange={setEditNameOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Edit room name</DialogTitle>
-            <DialogDescription>Update the name of the room</DialogDescription>
+            <DialogTitle>Rename room</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Input
-              value={editNameValue}
-              onChange={(e) => setEditNameValue(e.target.value)}
-              placeholder="Room name"
-              className="w-full"
-            />
-          </div>
-          <DialogFooter>
+          <Input
+            value={editNameValue}
+            onChange={(e) => setEditNameValue(e.target.value)}
+            placeholder="Room name"
+            className="mt-2"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                // hook into parent if needed
+                setEditNameOpen(false);
+              }
+            }}
+          />
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEditNameOpen(false)}>
+              Cancel
+            </Button>
             <Button
-              onClick={handleEditNameSubmit}
-              className="bg-stp-blue-light text-white hover:bg-stp-blue-light/90"
+              className="bg-stp-blue-light text-white hover:bg-stp-blue-light/90 rounded-full"
+              onClick={() => setEditNameOpen(false)}
             >
-              Change
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Members modal */}
-      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Members</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-2">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                Add new member lol
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  value={addMemberSearch}
-                  onChange={(e) => setAddMemberSearch(e.target.value)}
-                  placeholder="Search for a user name"
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleAddMember}
-                  className="bg-stp-blue-light text-white hover:bg-stp-blue-light/90"
-                >
-                  Add
-                </Button>
-              </div>
+      {/* ── Members modal ── */}
+      <MembersModal
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
+        room={room}
+        onAddMember={onAddMember}
+        onRemoveMember={onRemoveMember}
+      />
+
+      {/* ── Documents modal ── */}
+      <DocumentsModal
+        open={documentsOpen}
+        onOpenChange={setDocumentsOpen}
+        room={room}
+        onUploadFile={onUploadFile}
+      />
+
+      {/* ── Messages ── */}
+      <ModernScrollArea className="flex-1 w-full">
+        <div className="p-4 space-y-6 max-w-5xl">
+          {isRoomDetailLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-stp-blue-light" />
             </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                List of member{members.length !== 1 ? "s" : ""}
-              </p>
-              <ul className="space-y-2 max-h-48 overflow-y-auto">
-                {members.map((member) => (
-                  <li
-                    key={member.id}
-                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                  >
-                    <span className="text-sm">
-                      {member.name || member.firstName || "Member"}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() =>
-                        onRemoveMember?.(room.id, member.userId || member.id)
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Documents modal */}
-      <Dialog open={documentsOpen} onOpenChange={setDocumentsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Documents</DialogTitle>
-            <DialogDescription>
-              Uploaded documents for this deal room
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {documents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No documents have been uploaded for this room yet.
-              </p>
-            ) : (
-              <ul className="space-y-2 max-h-60 overflow-y-auto">
-                {documents.map((doc) => (
-                  <li
-                    key={doc.id || doc.name}
-                    className="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
-                  >
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-stp-blue-light text-[10px] font-semibold text-white">
-                      PDF
-                    </span>
-                    <span className="text-sm truncate flex-1">{doc.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="p-4 space-y-6 max-w-3xl mx-auto">
-          {/* NDA ACKNOWLEDGMENT BANNER - Shows in chat until acknowledged */}
-          {showNDABanner && !hasAcknowledgedNDA && (
-            <div className="mb-6 animate-in slide-in-from-top duration-300">
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg overflow-hidden">
-                <div className="bg-amber-100 px-4 py-2 border-b border-amber-200">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-700" />
-                    <span className="text-sm font-semibold text-amber-900">
-                      Confidentiality Agreement Required
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <p className="text-sm text-amber-800">
-                    Before participating in this deal room, you must acknowledge
-                    and agree to the following:
-                  </p>
-
-                  <ul className="space-y-2 text-sm text-amber-700">
-                    <li className="flex items-start gap-2">
-                      <span className="text-amber-600 mt-0.5">•</span>
-                      <span>
-                        All information shared is{" "}
-                        <span className="font-semibold">
-                          strictly confidential
-                        </span>
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-amber-600 mt-0.5">•</span>
-                      <span>
-                        You will not share, copy, or distribute any documents
-                        outside this platform
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-amber-600 mt-0.5">•</span>
-                      <span>
-                        All communications are for internal deal purposes only
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-amber-600 mt-0.5">•</span>
-                      <span>
-                        Unauthorized disclosure may result in legal consequences
-                      </span>
-                    </li>
-                  </ul>
-
-                  <button
-                    onClick={handleAcknowledgeNDA}
-                    className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="h-4 w-4" />I Acknowledge & Agree to
-                    the Confidentiality Terms
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Persistent NDA Reminder Banner (smaller, after acknowledgment) */}
-          {showAcknowledgedMessage && (
-            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg overflow-hidden animate-in slide-in-from-top duration-300">
-              <div className="p-3">
-                <div className="flex items-center gap-2 text-xs text-green-800">
-                  <CheckCircle className="h-3 w-3 text-green-600 shrink-0" />
-                  <span className="flex-1">
-                    You've acknowledged the confidentiality agreement for this
-                    deal room.
-                  </span>
-                </div>
-              </div>
-              {/* Progress bar trailing indicator */}
-              <div className="h-1 bg-green-100">
-                <div
-                  className="h-full bg-green-500 transition-all duration-50 ease-linear"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-          {Array.from(messageGroups.entries()).map(
-            ([dateKey, dateMessages]) => (
-              <div key={dateKey}>
-                {/* Date separator */}
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-muted px-3 py-1 rounded-full">
-                    <span className="text-xs text-muted-foreground">
-                      {formatMessageDate(new Date(dateKey))}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Messages for this date */}
-                <div className="space-y-4">
-                  {dateMessages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      senderAvatar={message.senderAvatar || room.avatar}
-                      senderName={message.senderName || room.roomName || ""}
-                      onRetry={() => onRetryMessage(message.id)}
-                      onDelete={() => onDeleteMessage(message.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ),
-          )}
-
-          {messages.length === 0 && (
+          ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-              <p className="text-sm">No messages yet</p>
-              <p className="text-xs mt-1">Start the conversation!</p>
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Send className="h-5 w-5 opacity-40" />
+              </div>
+              <p className="text-sm font-medium">No messages yet</p>
+              <p className="text-xs mt-1 opacity-60">Start the conversation!</p>
             </div>
+          ) : (
+            Array.from(messageGroups.entries()).map(
+              ([dateKey, dateMessages]) => (
+                <div key={dateKey}>
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="bg-muted px-3 py-1 rounded-full">
+                      <span className="text-xs text-muted-foreground">
+                        {formatMessageDate(new Date(dateKey))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {dateMessages.map((message) => (
+                      <MessageBubble
+                        key={message.id}
+                        message={message}
+                        senderAvatar={message.senderAvatar}
+                        senderName={message.senderName || ""}
+                        onDelete={(callback) => onDeleteMessage?.(message.id, callback)}
+                        isDeletePending={isDeletePending}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ),
+            )
           )}
+         <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </ModernScrollArea>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-border bg-card">
+      {/* ── Typing indicator ── */}
+      <TypingIndicator users={typingUsers} />
+
+      {/* ── Message input ── */}
+      <div className="px-4 pb-4 pt-2 border-t border-border bg-card shrink-0">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-end gap-2 bg-muted/50 rounded-2xl px-4 py-2">
+          <div className="flex items-end gap-2 bg-muted/50 rounded-2xl px-3 py-2 border border-border focus-within:border-stp-blue-light/40 transition-colors">
+            {/* File attach */}
+            {/* <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shrink-0 pb-0.5"
+              title="Attach file"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button> */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileAttach}
+            />
+
             <Textarea
               ref={textareaRef}
-              placeholder="Type your message..."
+              placeholder="Type a message…"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleMessageChange}
               onKeyDown={handleKeyDown}
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1 min-h-[24px] max-h-[120px] resize-none"
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-1 min-h-[24px] max-h-[120px] resize-none text-sm"
               rows={1}
             />
 
-            <div className="flex items-center gap-1 flex-shrink-0 pb-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
-              >
-                <Paperclip className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
-              >
-                <Image className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
-              >
-                <Mic className="h-5 w-5" />
-              </Button>
+            <div className="flex items-center gap-1 shrink-0 pb-0.5">
               <Button
                 size="icon"
                 className={cn(
                   "h-8 w-8 rounded-full transition-all",
                   newMessage.trim()
-                    ? "bg-stp-blue-light hover:bg-stp-blue-light"
-                    : "bg-stp-blue-light/50 cursor-not-allowed",
+                    ? "bg-stp-blue-light hover:bg-stp-blue-light/90 text-white"
+                    : "bg-muted text-muted-foreground cursor-not-allowed",
                 )}
                 onClick={handleSend}
                 disabled={!newMessage.trim()}
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
+          <p className="text-[10px] text-muted-foreground/50 text-center mt-1.5">
+            Press Enter to send · Shift+Enter for new line
+          </p>
         </div>
       </div>
     </div>

@@ -2,10 +2,9 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-import useAuthStore from '@/lib/store/useAuthStore';
-import { useDealRoomSocket } from '@/lib/hooks/useDealRoomSocket';
-import { useMyDealroom , useDealroomById,
+import {
+  useMyDealroom,
+  useDealroomById,
   useCreateDealroom,
   useAddMembers,
   useRemoveDealroomMember,
@@ -13,7 +12,10 @@ import { useMyDealroom , useDealroomById,
   useSendDealroomMessage,
   useDeleteDealroomMessage,
   useUploadDealroomFile,
-  dealroomKeys,} from '@/lib/hooks/useDealroomQueries';
+  dealroomKeys,
+} from '@/lib/hooks/useDealroomQueries';
+import { useDealRoomSocket } from '@/lib/hooks/useDealRoomSocket';
+import useAuthStore from '@/lib/store/useAuthStore';
 
 const EMPTY_ARRAY = [];
 
@@ -117,7 +119,7 @@ export function useDealRoom() {
   const { mutate: addMembersMutation } = useAddMembers();
   const { mutate: removeMemberMutation } = useRemoveDealroomMember();
   const { mutate: sendMessageMutation } = useSendDealroomMessage();
-  const { mutate: deleteMessageMutation } = useDeleteDealroomMessage();
+  const { mutateAsync: deleteMessageMutation,isPending:isDeletePending } = useDeleteDealroomMessage();
   const { mutateAsync: uploadFileMutation } = useUploadDealroomFile();
 
   // ─── WebSocket ─────────────────────────────────────────────────
@@ -202,18 +204,25 @@ export function useDealRoom() {
       if (!selectedRoomId || !content.trim()) return;
       // Send via WS for real-time, REST for persistence
       wsSendMessage(content);
-      sendMessageMutation({ roomId: selectedRoomId, content: content.trim() });
+      // sendMessageMutation({ roomId: selectedRoomId, content: content.trim() });
     },
     [selectedRoomId, wsSendMessage, sendMessageMutation],
   );
 
   const deleteMessage = useCallback(
-    (messageId) => {
+    async (messageId,callback) => {
       if (!selectedRoomId) return;
-      deleteMessageMutation({ roomId: selectedRoomId, messageId });
+      try {
+        await deleteMessageMutation({ roomId: selectedRoomId, messageId });
+        // toast.success('Message deleted');
+        callback?.();
+      } catch (error) {
+        // toast.error(error?.response?.data?.message || 'Failed to delete message');
+      }
     },
     [selectedRoomId, deleteMessageMutation],
   );
+       
 
   const addMember = useCallback(
     (roomId, userId) => {
@@ -272,13 +281,14 @@ export function useDealRoom() {
     currentMessages,
     searchQuery,
     sortBy,
-    isLoading: roomsLoading,
+     roomsLoading,
     isRoomDetailLoading: roomDetailLoading,
     isMessagesLoading: msgsLoading,
     currentUserId,
     currentUser,
     typingUsers,
     hasMoreMessages: hasNextPage,
+    isDeletePending,
 
     // Actions
     setSearchQuery,

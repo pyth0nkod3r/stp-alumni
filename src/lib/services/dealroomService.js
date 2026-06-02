@@ -27,7 +27,7 @@ const dealroomService = {
 
   addMembers: async (roomId, userIds) => {
     const response = await api.post(`/dealrooms/${roomId}/members`, {
-      members: Array.isArray(userIds) ? userIds : [userIds],
+      members: Array.isArray(userIds) ? userIds : [...userIds],
     });
     return response.data;
   },
@@ -70,6 +70,14 @@ const dealroomService = {
 
   getStreamUrl: (roomId, fileId) =>
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/dealrooms/${roomId}/files/${fileId}/stream`,
+
+    // ─── NDA ───────────────────────────────────────────────────────
+ 
+  signNda: async (roomId) => {
+    const response = await api.post(`/dealrooms/${roomId}/nda-signatures`);
+    return response.data;
+  },
+ 
 
   // ─── Audit log ─────────────────────────────────────────────────
 

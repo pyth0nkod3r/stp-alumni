@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   return (
-    <AuthContext.Provider value={{ data: profileData, isProfileLoading }}>
+    <AuthContext.Provider value={{ data: profileData, isProfileLoading , currentUserId: profileData?.data?.userId || [] }}>
       {children}
     </AuthContext.Provider>
   );
