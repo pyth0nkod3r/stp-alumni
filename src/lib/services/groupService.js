@@ -9,8 +9,13 @@ const groupService = {
     const response = await api.get('/network/groups');
     return response.data;
   },
+  getGroupById: async (groupId) => {
+    // /api/network/groups/:groupId
+    const response = await api.get(`/network/groups/${groupId}`);
+    return response.data;
+  },
 
-   createGroup: async (groupData) => {
+  createGroup: async (groupData) => {
     // groupData: { name, description, thumbnailUrl? }
     // privacyMode is always "PUBLIC" per your spec
     const response = await api.post('/network/groups', {
@@ -27,13 +32,13 @@ const groupService = {
    * @param {string} action 
    * @param {string} userId 
    */
-  toggleMembership: async (groupId, action,userId) => {
+  toggleMembership: async (groupId, action, userId) => {
     const response = await api.post(`/network/groups/${groupId}/member`, {
-      action,userId
+      action, userId
     });
     return response.data;
   },
-    getGroupMembers: async (groupId, page = 1, limit = 20) => {
+  getGroupMembers: async (groupId, page = 1, limit = 20) => {
     const response = await api.get(`/network/groups/${groupId}/members`, {
       params: { page, limit },
     });

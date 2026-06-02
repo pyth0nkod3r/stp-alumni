@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +38,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserCard } from "@/components/user-card";
+import { useQuery } from "@tanstack/react-query";
+import groupService from "@/lib/services/groupService";
 
 const posts = [
   {
@@ -95,9 +97,22 @@ const admin = {
     "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
 };
 
-export default function GroupDetailView({}) {
+export default function GroupDetailView({ params }) {
   const [postContent, setPostContent] = useState("");
 
+  const { id } = React.use(params);
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["groups", id],
+    queryFn: () => groupService.getGroupById(id),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!id,
+  });
+  
+  console.log("Group ID from params:", data);
   const group = {
     id: 1,
     name: "STP Alumni Network",
@@ -238,10 +253,13 @@ export default function GroupDetailView({}) {
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
-                <Button size="sm" className="bg-stp-blue-light hover:bg-primary/90 flex items-center" disabled={!postContent.trim()}>
+                <Button
+                  size="sm"
+                  className="bg-stp-blue-light hover:bg-primary/90 flex items-center"
+                  disabled={!postContent.trim()}
+                >
                   Submit Post
-
-                  <SendHorizontal/>
+                  <SendHorizontal />
                 </Button>
               </div>
             </CardContent>
