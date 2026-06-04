@@ -92,8 +92,8 @@ function SidebarWidgets({ t, height }) {
                   </div>
                 ) : networkContacts.length > 0 ? (
                   networkContacts
-                  // .filter((ele) => ele.connectionStatus === "ACCEPTED")
-                  .slice(0, 5)
+                    // .filter((ele) => ele.connectionStatus === "ACCEPTED")
+                    .slice(0, 5)
                     .map((contact, index) => (
                       <ConnectedUser contact={contact} index={index} />
                     ))
@@ -266,7 +266,7 @@ function InvitationItem({ invitation, index }) {
   );
 }
 
-function ConnectedUser({contact, index}) {
+function ConnectedUser({ contact, index }) {
   const { mutate: sendInvitation, isPending: isSending } = useSendInvitation();
 
   const handleMessage = (userId) => {

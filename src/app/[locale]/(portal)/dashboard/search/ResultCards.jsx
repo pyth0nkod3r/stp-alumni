@@ -190,30 +190,30 @@ export function EventResultCard({ event }) {
   return (
     <Link href={`/dashboard/events/${event.eventId}`}>
       <div className="group p-4 rounded-xl border border-slate-200 hover:border-[#155DFC]/30 hover:shadow-md transition-all bg-white">
-        {event.image && (
+        {event.cover_image_path && (
           <img
-            src={event.image}
-            alt={event.title}
+            src={event.cover_image_path}
+            alt={event.name}
             className="w-full h-40 object-cover rounded-lg mb-3"
           />
         )}
 
         <h3 className="font-semibold text-slate-900 group-hover:text-[#155DFC] transition-colors line-clamp-2 mb-2">
-          {event.title}
+          {event.name}
         </h3>
 
         <div className="space-y-1.5 text-sm text-slate-600">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-[#155DFC]" />
             <span>
-              {formatMySQLDate(event.date, "EEEE, MMM d, yyyy • h:mm a")}
+              {formatMySQLDate(event.start_time, "EEEE, MMM d, yyyy • h:mm a")}
             </span>
           </div>
 
-          {event.location && (
+          {event.address && (
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-[#155DFC]" />
-              <span className="truncate">{event.location}</span>
+              <span className="truncate">{event.address}</span>
             </div>
           )}
 
