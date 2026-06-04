@@ -56,6 +56,7 @@ import {
   usePostComments,
   useCommentOnPost,
 } from "@/lib/hooks/useGroupQueries";
+import { Helmet } from "react-helmet-async";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -106,8 +107,14 @@ function PostSkeleton() {
 
 function CommentsSection({ groupId, postId, onClose }) {
   const [commentText, setCommentText] = useState("");
-  const { data, isLoading, fetchNextPage, hasNextPage } = usePostComments(groupId, postId);
-  const { mutate: submitComment, isPending } = useCommentOnPost(groupId, postId);
+  const { data, isLoading, fetchNextPage, hasNextPage } = usePostComments(
+    groupId,
+    postId,
+  );
+  const { mutate: submitComment, isPending } = useCommentOnPost(
+    groupId,
+    postId,
+  );
 
   const comments = data?.pages.flat() || [];
 
@@ -164,14 +171,19 @@ function CommentsSection({ groupId, postId, onClose }) {
               <Avatar className="h-7 w-7 shrink-0">
                 <AvatarImage src={c.authorAvatar || c.profileImagePath} />
                 <AvatarFallback className="text-[10px]">
-                  {getInitials(c.authorName || `${c.firstName || ""} ${c.lastName || ""}`)}
+                  {getInitials(
+                    c.authorName || `${c.firstName || ""} ${c.lastName || ""}`,
+                  )}
                 </AvatarFallback>
               </Avatar>
               <div className="bg-muted rounded-xl px-3 py-2 flex-1 min-w-0">
                 <p className="text-xs font-semibold text-foreground truncate">
-                  {c.authorName || `${c.firstName || ""} ${c.lastName || ""}`.trim()}
+                  {c.authorName ||
+                    `${c.firstName || ""} ${c.lastName || ""}`.trim()}
                 </p>
-                <p className="text-sm text-foreground mt-0.5">{c.comment || c.content}</p>
+                <p className="text-sm text-foreground mt-0.5">
+                  {c.comment || c.content}
+                </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {formatRelativeTime(c.createdAt)}
                 </p>
@@ -218,7 +230,9 @@ function PostCard({ post, groupId }) {
               <AvatarFallback>{getInitials(authorName)}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-sm font-semibold leading-tight">{authorName}</h3>
+              <h3 className="text-sm font-semibold leading-tight">
+                {authorName}
+              </h3>
               {authorTitle && (
                 <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                   {authorTitle}
@@ -396,14 +410,19 @@ function CreatePostCard({ groupId, isMember }) {
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {images.map((file, i) => (
-              <div key={i} className="relative h-16 w-16 rounded-lg overflow-hidden">
+              <div
+                key={i}
+                className="relative h-16 w-16 rounded-lg overflow-hidden"
+              >
                 <img
                   src={URL.createObjectURL(file)}
                   alt=""
                   className="h-full w-full object-cover"
                 />
                 <button
-                  onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))}
+                  onClick={() =>
+                    setImages((prev) => prev.filter((_, idx) => idx !== i))
+                  }
                   className="absolute top-0.5 right-0.5 h-4 w-4 bg-black/60 rounded-full flex items-center justify-center"
                 >
                   <X className="h-2.5 w-2.5 text-white" />
@@ -476,12 +495,18 @@ function MembersModal({ open, onOpenChange, groupId }) {
           ) : (
             <div className="space-y-3 pr-2">
               {members.map((m) => {
-                const name = m.name || `${m.firstName || ""} ${m.lastName || ""}`.trim();
+                const name =
+                  m.name || `${m.firstName || ""} ${m.lastName || ""}`.trim();
                 return (
-                  <div key={m.userId || m.id} className="flex items-center gap-3">
+                  <div
+                    key={m.userId || m.id}
+                    className="flex items-center gap-3"
+                  >
                     <Avatar className="h-9 w-9 shrink-0">
                       <AvatarImage src={m.profileImagePath || m.avatar} />
-                      <AvatarFallback className="text-xs">{getInitials(name)}</AvatarFallback>
+                      <AvatarFallback className="text-xs">
+                        {getInitials(name)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{name}</p>
@@ -558,289 +583,304 @@ export default function GroupDetailView({ params }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* ── Main content ── */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Group header card */}
-          <Card className="overflow-hidden pt-0">
-            <div className="relative h-36 sm:h-48 w-full">
-              {group?.coverImagePath || group?.thumbnail ? (
-                <img
-                  src={group.coverImagePath || group.thumbnail}
-                  alt={group?.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-stp-blue-light/80 to-stp-blue-light/40" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+    <>
+      <Helmet>
+        <title>Group Details | Blazing Torrent</title>
+        <meta
+          name="description"
+          content={group?.description || "Discover and connect with alumni in your group."}
+        />
+      </Helmet>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* ── Main content ── */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Group header card */}
+            <Card className="overflow-hidden pt-0">
+              <div className="relative h-36 sm:h-48 w-full">
+                {group?.coverImagePath || group?.thumbnail ? (
+                  <img
+                    src={group.coverImagePath || group.thumbnail}
+                    alt={group?.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-stp-blue-light/80 to-stp-blue-light/40" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-              {/* Group icon */}
-              <div className="absolute -bottom-8 left-4 sm:left-6">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-xl p-1 shadow-xl">
-                  <div className="w-full h-full bg-gradient-to-br from-stp-blue-light to-stp-blue-light/70 rounded-lg flex items-center justify-center">
-                    <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                {/* Group icon */}
+                <div className="absolute -bottom-8 left-4 sm:left-6">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-xl p-1 shadow-xl">
+                    <div className="w-full h-full bg-gradient-to-br from-stp-blue-light to-stp-blue-light/70 rounded-lg flex items-center justify-center">
+                      <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <CardContent className="pt-3">
+                {/* Actions row */}
+                <div className="flex items-center justify-end gap-1 mb-2">
+                  {/* Join/Leave button */}
+                  {isMember ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-full gap-1.5 text-xs"
+                      disabled={isTogglingMembership}
+                      onClick={() => toggleMembership("LEAVE")}
+                    >
+                      {isTogglingMembership ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <UserCheck className="h-3.5 w-3.5" />
+                      )}
+                      Joined
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="rounded-full gap-1.5 text-xs bg-stp-blue-light hover:bg-stp-blue-light/90 text-white"
+                      disabled={isTogglingMembership}
+                      onClick={() => toggleMembership("JOIN")}
+                    >
+                      {isTogglingMembership ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <UserPlus className="h-3.5 w-3.5" />
+                      )}
+                      Join Group
+                    </Button>
+                  )}
+
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Info className="h-4 w-4 text-stp-blue-light" />
+                      </Button>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-sm">
+                      {group?.description || "No description available."}
+                    </HoverCardContent>
+                  </HoverCard>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4 text-stp-blue-light" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() =>
+                          navigator.clipboard.writeText(window.location.href)
+                        }
+                      >
+                        <Link className="h-4 w-4 mr-2" />
+                        Copy link to group
+                      </DropdownMenuItem>
+                      {isMember && (
+                        <DropdownMenuItem
+                          onClick={() => toggleMembership("LEAVE")}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Leave this group
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        <FlagIcon className="h-4 w-4 mr-2" />
+                        Report this group
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <h1 className="text-xl font-bold text-foreground mt-1">
+                  {group?.name}
+                </h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-sm text-muted-foreground">
+                    {group?.memberCount?.toLocaleString() ?? members.length}{" "}
+                    members
+                  </span>
+                  <span className="text-muted-foreground/40 text-xs">·</span>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {(group?.privacyMode || "Public").toLowerCase()} group
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Create post */}
+            <CreatePostCard groupId={id} isMember={isMember} />
+
+            {/* Filter tabs */}
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="default"
+                className="bg-stp-blue-light text-white cursor-pointer"
+              >
+                All
+              </Badge>
+              {/* <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+              Recommended
+            </Badge> */}
             </div>
 
-            <CardContent className="pt-3">
-              {/* Actions row */}
-              <div className="flex items-center justify-end gap-1 mb-2">
-                {/* Join/Leave button */}
-                {isMember ? (
+            {/* Posts */}
+            {postsLoading ? (
+              <>
+                <PostSkeleton />
+                <PostSkeleton />
+              </>
+            ) : posts.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium">No posts yet</p>
+                  {isMember && (
+                    <p className="text-xs mt-1">Be the first to post!</p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard
+                    key={post.postId || post.id}
+                    post={post}
+                    groupId={id}
+                  />
+                ))}
+                {hasNextPage && (
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="rounded-full gap-1.5 text-xs"
-                    disabled={isTogglingMembership}
-                    onClick={() => toggleMembership("LEAVE")}
+                    className="w-full rounded-full"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
                   >
-                    {isTogglingMembership ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {isFetchingNextPage ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
-                      <UserCheck className="h-3.5 w-3.5" />
+                      <ChevronDown className="h-4 w-4 mr-2" />
                     )}
-                    Joined
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="rounded-full gap-1.5 text-xs bg-stp-blue-light hover:bg-stp-blue-light/90 text-white"
-                    disabled={isTogglingMembership}
-                    onClick={() => toggleMembership("JOIN")}
-                  >
-                    {isTogglingMembership ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <UserPlus className="h-3.5 w-3.5" />
-                    )}
-                    Join Group
+                    Load more posts
                   </Button>
                 )}
-
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Info className="h-4 w-4 text-stp-blue-light" />
-                    </Button>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-64 text-sm">
-                    {group?.description || "No description available."}
-                  </HoverCardContent>
-                </HoverCard>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4 text-stp-blue-light" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() =>
-                        navigator.clipboard.writeText(window.location.href)
-                      }
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      Copy link to group
-                    </DropdownMenuItem>
-                    {isMember && (
-                      <DropdownMenuItem
-                        onClick={() => toggleMembership("LEAVE")}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Leave this group
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">
-                      <FlagIcon className="h-4 w-4 mr-2" />
-                      Report this group
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <h1 className="text-xl font-bold text-foreground mt-1">
-                {group?.name}
-              </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-muted-foreground">
-                  {group?.memberCount?.toLocaleString() ?? members.length} members
-                </span>
-                <span className="text-muted-foreground/40 text-xs">·</span>
-                <span className="text-sm text-muted-foreground capitalize">
-                  {(group?.privacyMode || "Public").toLowerCase()} group
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Create post */}
-          <CreatePostCard groupId={id} isMember={isMember} />
-
-          {/* Filter tabs */}
-          <div className="flex items-center gap-2">
-            <Badge variant="default" className="bg-stp-blue-light text-white cursor-pointer">
-              All
-            </Badge>
-            <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-              Recommended
-            </Badge>
+              </>
+            )}
           </div>
 
-          {/* Posts */}
-          {postsLoading ? (
-            <>
-              <PostSkeleton />
-              <PostSkeleton />
-            </>
-          ) : posts.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm font-medium">No posts yet</p>
-                {isMember && (
-                  <p className="text-xs mt-1">Be the first to post!</p>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {posts.map((post) => (
-                <PostCard
-                  key={post.postId || post.id}
-                  post={post}
-                  groupId={id}
-                />
-              ))}
-              {hasNextPage && (
-                <Button
-                  variant="outline"
-                  className="w-full rounded-full"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                >
-                  {isFetchingNextPage ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                  )}
-                  Load more posts
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── Sticky sidebar ── */}
-        <div className="lg:sticky lg:top-4 space-y-4">
-          {/* Members card */}
-          <Card>
-            <CardContent className="pt-4">
-              <h3 className="text-2xl font-bold text-foreground">
-                {(group?.memberCount ?? members.length).toLocaleString()}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-0.5">members</p>
-
-              {/* Member avatar stack */}
-              {members.length > 0 && (
-                <div className="flex items-center mt-3 -space-x-2">
-                  {members.slice(0, 5).map((m, i) => {
-                    const name =
-                      m.name ||
-                      `${m.firstName || ""} ${m.lastName || ""}`.trim();
-                    return (
-                      <Avatar
-                        key={m.userId || i}
-                        className="h-7 w-7 ring-2 ring-background"
-                      >
-                        <AvatarImage src={m.profileImagePath || m.avatar} />
-                        <AvatarFallback className="text-[10px]">
-                          {getInitials(name)}
-                        </AvatarFallback>
-                      </Avatar>
-                    );
-                  })}
-                  {members.length > 5 && (
-                    <div className="h-7 w-7 rounded-full bg-muted ring-2 ring-background flex items-center justify-center">
-                      <span className="text-[10px] text-muted-foreground font-medium">
-                        +{members.length - 5}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <Button
-                className="w-full mt-4 bg-stp-blue-light hover:bg-stp-blue-light/90 text-white rounded-full"
-                onClick={() => setMembersOpen(true)}
-              >
-                Show all members
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Admin card */}
-          {admin && (
+          {/* ── Sticky sidebar ── */}
+          <div className="lg:sticky lg:top-25 space-y-4">
+            {/* Members card */}
             <Card>
               <CardContent className="pt-4">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Admin
-                </h4>
-                <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarImage src={admin.profileImagePath || admin.avatar} />
-                    <AvatarFallback>
-                      {getInitials(
-                        admin.name ||
-                          `${admin.firstName || ""} ${admin.lastName || ""}`.trim(),
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">
-                      {admin.name ||
-                        `${admin.firstName || ""} ${admin.lastName || ""}`.trim()}
-                    </p>
-                    {(admin.title || admin.companyName) && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                        {admin.title}
-                        {admin.title && admin.companyName ? " · " : ""}
-                        {admin.companyName}
-                      </p>
+                <h3 className="text-2xl font-bold text-foreground">
+                  {(group?.memberCount ?? members.length).toLocaleString()}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-0.5">members</p>
+
+                {/* Member avatar stack */}
+                {members.length > 0 && (
+                  <div className="flex items-center mt-3 -space-x-2">
+                    {members.slice(0, 5).map((m, i) => {
+                      const name =
+                        m.name ||
+                        `${m.firstName || ""} ${m.lastName || ""}`.trim();
+                      return (
+                        <Avatar
+                          key={m.userId || i}
+                          className="h-7 w-7 ring-2 ring-background"
+                        >
+                          <AvatarImage src={m.profileImagePath || m.avatar} />
+                          <AvatarFallback className="text-[10px]">
+                            {getInitials(name)}
+                          </AvatarFallback>
+                        </Avatar>
+                      );
+                    })}
+                    {members.length > 5 && (
+                      <div className="h-7 w-7 rounded-full bg-muted ring-2 ring-background flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          +{members.length - 5}
+                        </span>
+                      </div>
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                )}
 
-          {/* About card */}
-          {group?.description && (
-            <Card>
-              <CardContent className="pt-4">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  About
-                </h4>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {group.description}
-                </p>
+                <Button
+                  className="w-full mt-4 bg-stp-blue-light hover:bg-stp-blue-light/90 text-white rounded-full"
+                  onClick={() => setMembersOpen(true)}
+                >
+                  Show all members
+                </Button>
               </CardContent>
             </Card>
-          )}
+
+            {/* Admin card */}
+            {admin && (
+              <Card>
+                <CardContent className="pt-4">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Admin
+                  </h4>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10 shrink-0">
+                      <AvatarImage
+                        src={admin.profileImagePath || admin.avatar}
+                      />
+                      <AvatarFallback>
+                        {getInitials(
+                          admin.name ||
+                            `${admin.firstName || ""} ${admin.lastName || ""}`.trim(),
+                        )}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">
+                        {admin.name ||
+                          `${admin.firstName || ""} ${admin.lastName || ""}`.trim()}
+                      </p>
+                      {(admin.title || admin.companyName) && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {admin.title}
+                          {admin.title && admin.companyName ? " · " : ""}
+                          {admin.companyName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* About card */}
+            {group?.description && (
+              <Card>
+                <CardContent className="pt-4">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    About
+                  </h4>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {group.description}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Members modal */}
-      <MembersModal
-        open={membersOpen}
-        onOpenChange={setMembersOpen}
-        groupId={id}
-      />
-    </div>
+        {/* Members modal */}
+        <MembersModal
+          open={membersOpen}
+          onOpenChange={setMembersOpen}
+          groupId={id}
+        />
+      </div>
+    </>
   );
 }

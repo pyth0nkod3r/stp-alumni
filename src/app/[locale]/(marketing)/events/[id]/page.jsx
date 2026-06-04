@@ -178,7 +178,7 @@ export default function EventDetail({params}) {
             {/* Host Event Card */}
             <div className="bg-card rounded-xl border border-border p-5 text-center space-y-4">
               <p className="text-sm font-medium">
-                Host an event on STP Alumni<br />and invite your network
+                Host an event on Blazing Torrent<br />and invite your network
               </p>
               <Button variant="outline" className="w-full" onClick={() => setIsCreateModalOpen(true)}>
                 Create event

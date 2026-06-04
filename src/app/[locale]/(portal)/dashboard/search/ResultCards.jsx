@@ -32,29 +32,29 @@ export const formatMySQLDate = (dateStr, formatStr = "MMM d, yyyy") => {
 // 👤 People Card
 export function PeopleResultCard({ person }) {
   return (
-    <Link href={`/profile/${person.userId}`}>
+    <Link href={`/dashboard/profile/${person.user_id}`}>
       <div className="group flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:border-[#155DFC]/30 hover:shadow-md transition-all bg-white">
         <Avatar className="h-14 w-14 shrink-0">
           <AvatarImage
-            src={person.profileImagePath}
-            alt={`${person.firstName} ${person.lastName}`}
+            src={person.profile_image_path}
+            alt={`${person.first_name} ${person.last_name}`}
           />
           <AvatarFallback className="bg-[#155DFC]/10 text-[#155DFC] font-semibold">
-            {person.firstName}
-            {person.lastName}
+            {person.first_name}
+            {person.last_name}
           </AvatarFallback>
         </Avatar>
 
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-900 group-hover:text-[#155DFC] transition-colors">
-            {person.firstName} {person.lastName}
+            {person.first_name} {person.last_name}
           </h3>
 
           <div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
-            {person.currentPosition && (
+            {person.title && (
               <>
                 <Briefcase className="h-3.5 w-3.5" />
-                <span className="truncate">{person.currentPosition}</span>
+                <span className="truncate">{person.title}</span>
                 {person.company && (
                   <>
                     <span>•</span>
@@ -236,7 +236,7 @@ export function EventResultCard({ event }) {
 // 👥 Group Card
 export function GroupResultCard({ group }) {
   return (
-    <Link href={`/groups/${group.groupId}`}>
+    <Link href={`/dashboard/groups/${group.group_id}`}>
       <div className="group p-4 rounded-xl border border-slate-200 hover:border-[#155DFC]/30 hover:shadow-md transition-all bg-white">
         {group.image && (
           <img
@@ -257,7 +257,7 @@ export function GroupResultCard({ group }) {
         <div className="flex items-center justify-between text-sm text-slate-500">
           <div className="flex items-center gap-1">
             <Users className="h-4 w-4" />
-            <span>{group.memberCount} members</span>
+            <span>{group.member_count} members</span>
           </div>
         </div>
 

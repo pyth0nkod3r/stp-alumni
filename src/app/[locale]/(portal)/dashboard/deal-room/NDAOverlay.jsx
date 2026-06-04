@@ -81,7 +81,7 @@ function NDAOverlay({ room, currentUserId, onSign }) {
             </div>
 
             {/* Checkbox */}
-            <label className="flex items-start gap-3 cursor-pointer group">
+            <label className="flex items-start gap-3 cursor-pointer group"  onClick={() => setAgreed((v) => !v)}>
               <div
                 className={cn(
                   "mt-0.5 h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-all",
@@ -89,7 +89,7 @@ function NDAOverlay({ room, currentUserId, onSign }) {
                     ? "bg-stp-blue-light border-stp-blue-light"
                     : "border-border group-hover:border-stp-blue-light/50",
                 )}
-                onClick={() => setAgreed((v) => !v)}
+               
               >
                 {agreed && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
               </div>

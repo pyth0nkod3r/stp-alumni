@@ -23,10 +23,10 @@ export const COMPANY_STAGES = [
 
 export const sidePanelContent = {
     1: {
-      title: "Build your STP identity",
+      title: "Build your Blazing identity",
       subtitle: "Your personal profile is your face to the alumni community.",
       bullets: [
-        "Visible to all STP alumni",
+        "Visible to all Blazing Torrent",
         "Used to match you with relevant peers",
         "Editable any time from Settings",
       ],

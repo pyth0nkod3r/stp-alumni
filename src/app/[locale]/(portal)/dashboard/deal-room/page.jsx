@@ -6,6 +6,7 @@ import { DealRoomList } from "./DealRoomList";
 import { useDealRoom } from "./useDealRoom";
 import { CreateDealRoomModal } from "./CreateDealRoomModal";
 import { useNavbar } from "@/contexts/NavbarContext";
+import { Helmet } from "react-helmet-async";
 
 const DealRoom = () => {
   const {
@@ -47,6 +48,14 @@ const DealRoom = () => {
 
   return (
     <>
+    
+          <Helmet>
+            <title>Deal Rooms | Blazing Torrent</title>
+            <meta
+              name="description"
+              content={"Collaborate securely with your contacts in dedicated deal rooms. Share files, exchange messages, and manage your deals all in one place."}
+            />
+          </Helmet>
       <div
         className=" flex bg-background"
         style={{

@@ -174,7 +174,7 @@ export default function EventDetail({ params }) {
         <div className="lg:w-80 space-y-6">
           <div className="bg-card rounded-xl border border-border p-5 text-center space-y-4">
             <p className="text-sm font-medium">
-              Host an event on STP Alumni
+              Host an event on Blazing Torrent
               <br />
               and invite your network
             </p>
