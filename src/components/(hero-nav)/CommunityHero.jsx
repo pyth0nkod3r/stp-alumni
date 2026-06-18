@@ -1,20 +1,24 @@
 import { Link } from "@/i18n/routing";
 import React from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import marketIcon from "../../../public/assets/market-icon.png";
 import eventIcon from "../../../public/assets/event-icon.png";
 
 const CommunitySection = () => {
+  const t = useTranslations("CommunityHero");
   const arr = [
     {
       src: marketIcon,
-      title: "Marketplace",
-      desc: "Connect, share, and grow with people in your community",
+      title: t("marketplaceTitle"),
+      desc: t("marketplaceDesc"),
+      href: "/marketplace",
     },
     {
       src: eventIcon,
-      title: "Events",
-      desc: "Discover and join upcoming events.",
+      title: t("eventsTitle"),
+      desc: t("eventsDesc"),
+      href: "/events",
     },
   ];
   return (
@@ -22,11 +26,10 @@ const CommunitySection = () => {
       {/* Header Section */}
       <div className="text-center max-w-2xl mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-          Connect. <span className="text-white">Share.</span> Participate.
+          {t("headlineMain")} <span className="text-white">{t("headlineSub1")}</span> {t("headlineSub2")}
         </h1>
         <p className="text-lg leading-relaxed opacity-90">
-          Join conversations, attend events and grow together through engaging
-          discussions, community activities, and real connections.
+          {t("description")}
         </p>
       </div>
 
@@ -35,7 +38,7 @@ const CommunitySection = () => {
         {/* Marketplace Card */}
         {arr.map((ele) => (
           <Link
-            href={`/${ele.title.toLowerCase()}`}
+            href={ele.href}
             key={ele.title}
             className="bg-white rounded-2xl p-8 w-80 shadow-[0_0_50px_rgba(255,255,255,0.4)] transition-transform hover:scale-105"
           >

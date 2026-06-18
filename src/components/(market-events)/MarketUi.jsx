@@ -200,12 +200,12 @@ function MarketplaceContent({
     <>
       <div className="mb-6">
         <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
             placeholder={t("searchPlaceholder")}
             value={filters.search}
             onChange={(e) => updateFilter("search", e.target.value)}
-            className="pl-10 h-12 w-full bg-transparent border border-[#233389] rounded-lg"
+            className="ps-10 h-12 w-full bg-transparent border border-[#233389] rounded-lg"
           />
         </div>
 
@@ -228,7 +228,7 @@ function MarketplaceContent({
           >
             <SelectItem value="all">{t("sectorAll")}</SelectItem>
             {filtersLoading ? (
-              <SelectItem value="loading" disabled>Loading...</SelectItem>
+              <SelectItem value="loading" disabled>{t("loading")}</SelectItem>
             ) : (
               sectors.map((ele) => (
                 <SelectItem key={ele} value={ele.split(" ").join("_")}>
@@ -237,7 +237,7 @@ function MarketplaceContent({
               ))
             )}
           </FilterSelect>
-
+ 
           <FilterSelect
             label={t("location")}
             value={filters.location}
@@ -245,7 +245,7 @@ function MarketplaceContent({
           >
             <SelectItem value="all">{t("locationAll")}</SelectItem>
             {filtersLoading ? (
-              <SelectItem value="loading" disabled>Loading...</SelectItem>
+              <SelectItem value="loading" disabled>{t("loading")}</SelectItem>
             ) : (
               locations.map((loc) => (
                 <SelectItem key={loc} value={loc}>
@@ -254,15 +254,15 @@ function MarketplaceContent({
               ))
             )}
           </FilterSelect>
-
+ 
           <FilterSelect
-            label={"Cohort"}
+            label={t("cohort")}
             value={filters.cohort}
             onValueChange={(v) => updateFilter("cohort", v)}
           >
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">{t("cohortAll")}</SelectItem>
             {filtersLoading ? (
-              <SelectItem value="loading" disabled>Loading...</SelectItem>
+              <SelectItem value="loading" disabled>{t("loading")}</SelectItem>
             ) : (
               cohorts.map((cohort) => (
                 <SelectItem key={cohort} value={cohort}>
@@ -272,18 +272,18 @@ function MarketplaceContent({
             )}
           </FilterSelect>
         </div>
-
+ 
         {/* Show active filters count */}
         {(filters.search || filters.role !== "all" || filters.sector !== "all" || 
           filters.location !== "all" || filters.cohort !== "all") && (
           <div className="mt-4 flex items-center gap-2">
             <span className="text-sm text-gray-500">
-              Active filters: 
-              {filters.search && ` Search: "${filters.search}"`}
-              {filters.role !== "all" && ` Role: ${filters.role}`}
-              {filters.sector !== "all" && ` Sector: ${filters.sector}`}
-              {filters.location !== "all" && ` Location: ${filters.location}`}
-              {filters.cohort !== "all" && ` Cohort: ${filters.cohort}`}
+              {t("activeFilters")} 
+              {filters.search && ` ${t("filterSearch")}: "${filters.search}"`}
+              {filters.role !== "all" && ` ${t("filterRole")}: ${filters.role}`}
+              {filters.sector !== "all" && ` ${t("filterSector")}: ${filters.sector}`}
+              {filters.location !== "all" && ` ${t("filterLocation")}: ${filters.location}`}
+              {filters.cohort !== "all" && ` ${t("filterCohort")}: ${filters.cohort}`}
             </span>
             <Button
               onClick={clearAllFilters}
@@ -291,7 +291,7 @@ function MarketplaceContent({
               size="sm"
               className="text-red-500 hover:text-red-700"
             >
-              Clear all
+              {t("clearAll")}
             </Button>
           </div>
         )}
@@ -475,17 +475,20 @@ const AlumniCard = ({ alumni, t }) => {
   );
 };
 
-const EmptyState = ({ onClear }) => (
-  <div className="flex flex-col items-center justify-center py-16 text-center">
-    <Users className="h-16 w-16 text-gray-300 mb-4" />
-    <h3 className="text-lg font-semibold text-gray-900">No alumni found</h3>
-    <p className="text-gray-500 mt-2">Try adjusting your filters</p>
-    <Button
-      onClick={onClear}
-      variant="outline"
-      className="mt-4 border-[#233389] text-[#233389]"
-    >
-      Clear all filters
-    </Button>
-  </div>
-);
+const EmptyState = ({ onClear }) => {
+  const t = useTranslations("Marketplace");
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <Users className="h-16 w-16 text-gray-300 mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900">{t("noAlumniFound")}</h3>
+      <p className="text-gray-500 mt-2">{t("adjustFilters")}</p>
+      <Button
+        onClick={onClear}
+        variant="outline"
+        className="mt-4 border-[#233389] text-[#233389]"
+      >
+        {t("clearAllFilters")}
+      </Button>
+    </div>
+  );
+};

@@ -142,7 +142,7 @@ export default function ResourcesPage() {
   const uploadMutation = useMutation({
     mutationFn: resourceService.uploadResource,
     onSuccess: () => {
-      toast.success("Resource uploaded successfully!");
+      toast.success(t("uploadSuccess"));
       queryClient.invalidateQueries({ queryKey: ["resources"] });
       setUploadForm({ title: "", description: "", category: "", file: null });
       setIsUploadOpen(false);
@@ -151,7 +151,7 @@ export default function ResourcesPage() {
       console.error("Upload error:", error);
       toast.error(
         error.response?.data?.message ||
-          "Failed to upload resource. Please try again.",
+          t("uploadError"),
       );
     },
   });
@@ -159,7 +159,7 @@ export default function ResourcesPage() {
   const handleUploadSubmit = (e) => {
     e.preventDefault();
     if (!uploadForm.file) {
-      toast.error("Please select a file to upload.");
+      toast.error(t("selectFileError"));
       return;
     }
 
@@ -215,17 +215,17 @@ export default function ResourcesPage() {
       {/* Search and Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
             placeholder={t("searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 w-full bg-transparent border border-[#233389] focus:border-[#233389] focus:ring-0 focus-visible:ring-0 rounded-lg"
+            className="ps-10 h-12 w-full bg-transparent border border-[#233389] focus:border-[#233389] focus:ring-0 focus-visible:ring-0 rounded-lg"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+              className="absolute end-3 top-1/2 transform -translate-y-1/2"
             >
               <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
             </button>
@@ -241,27 +241,26 @@ export default function ResourcesPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[525px]">
               <DialogHeader>
-                <DialogTitle>Upload Resource</DialogTitle>
+                <DialogTitle>{t("uploadTitle")}</DialogTitle>
                 <DialogDescription>
-                  Share educational materials, templates, and documents with the
-                  community.
+                  {t("uploadDesc")}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleUploadSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title">{t("formTitle")}</Label>
                   <Input
                     id="title"
                     value={uploadForm.title}
                     onChange={(e) =>
                       setUploadForm({ ...uploadForm, title: e.target.value })
                     }
-                    placeholder="Enter resource title"
+                    placeholder={t("formTitlePlaceholder")}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t("formDesc")}</Label>
                   <Textarea
                     id="description"
                     value={uploadForm.description}
@@ -271,13 +270,13 @@ export default function ResourcesPage() {
                         description: e.target.value,
                       })
                     }
-                    placeholder="Describe the resource"
+                    placeholder={t("formDescPlaceholder")}
                     rows={3}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">{t("formCategory")}</Label>
                   <Select
                     value={uploadForm.category}
                     onValueChange={(value) =>
@@ -286,22 +285,22 @@ export default function ResourcesPage() {
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder={t("formCategoryPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="guides">Guides</SelectItem>
+                      <SelectItem value="guides">{t("guides")}</SelectItem>
                       <SelectItem value="trainingMaterials">
-                        Training Materials
+                        {t("trainingMaterials")}
                       </SelectItem>
-                      <SelectItem value="templates">Templates</SelectItem>
-                      <SelectItem value="policies">Policies</SelectItem>
-                      <SelectItem value="sharedDocs">Shared Docs</SelectItem>
-                      <SelectItem value="videos">Videos</SelectItem>
+                      <SelectItem value="templates">{t("templates")}</SelectItem>
+                      <SelectItem value="policies">{t("policies")}</SelectItem>
+                      <SelectItem value="sharedDocs">{t("sharedDocs")}</SelectItem>
+                      <SelectItem value="videos">{t("videos")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="file">File</Label>
+                  <Label htmlFor="file">{t("formFile")}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="file"
@@ -324,13 +323,13 @@ export default function ResourcesPage() {
                     variant="outline"
                     onClick={() => setIsUploadOpen(false)}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                   <Button
                     type="submit"
                     className="bg-stp-blue-light hover:bg-stp-blue-light/90"
                   >
-                    Upload Resource
+                    {t("uploadButton")}
                   </Button>
                 </div>
               </form>
@@ -359,7 +358,7 @@ export default function ResourcesPage() {
                 <div>
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <SlidersHorizontal className="h-4 w-4" />
-                    Advanced Filters
+                    {t("advancedFilters")}
                   </h4>
                 </div>
 
@@ -367,7 +366,7 @@ export default function ResourcesPage() {
 
                 {/* File Type Filter */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">File Type</Label>
+                  <Label className="text-sm font-medium">{t("fileType")}</Label>
                   <div className="space-y-2">
                     {fileTypes.map((fileType) => (
                       <div
@@ -383,7 +382,7 @@ export default function ResourcesPage() {
                           htmlFor={`file-${fileType}`}
                           className="text-sm cursor-pointer flex-1"
                         >
-                          {fileType} Files
+                          {t("filesLabel", { type: fileType })}
                         </label>
                       </div>
                     ))}
@@ -394,7 +393,7 @@ export default function ResourcesPage() {
 
                 {/* Sort By */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Sort By</Label>
+                  <Label className="text-sm font-medium">{t("sortBy")}</Label>
                   <Select
                     value={filters.sortBy}
                     onValueChange={(value) =>
@@ -405,9 +404,9 @@ export default function ResourcesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="title">Title (A-Z)</SelectItem>
+                      <SelectItem value="newest">{t("sortNewest")}</SelectItem>
+                      <SelectItem value="oldest">{t("sortOldest")}</SelectItem>
+                      <SelectItem value="title">{t("sortAlphabetical")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -422,14 +421,14 @@ export default function ResourcesPage() {
                     onClick={clearAllFilters}
                     className="flex-1"
                   >
-                    Clear All
+                    {t("clearAll")}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => setIsFilterOpen(false)}
                     className="flex-1 bg-stp-blue-light hover:bg-stp-blue-light/90"
                   >
-                    Apply
+                    {t("apply")}
                   </Button>
                 </div>
               </div>
@@ -539,9 +538,9 @@ export default function ResourcesPage() {
                         link.click();
                         document.body.removeChild(link);
 
-                        toast.success("Download started");
+                        toast.success(t("downloadStarted"));
                       } else {
-                        toast.error("No file available for download");
+                        toast.error(t("downloadError"));
                       }
                     }}
                     className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-md text-sm font-medium border border-[#233389] bg-white text-[#233389] hover:bg-[#233389] hover:text-white transition-colors duration-200"
@@ -558,12 +557,12 @@ export default function ResourcesPage() {
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <FileText className="h-16 w-16 text-gray-300 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No resources found
+            {t("noResourcesFound")}
           </h3>
           <p className="text-sm text-gray-500 max-w-md">
             {searchQuery
-              ? "Try adjusting your search query or filters to find what you're looking for."
-              : "No resources available in this category."}
+              ? t("adjustSearch")
+              : t("noResourcesCategory")}
           </p>
           {hasActiveFilters && (
             <Button
@@ -571,7 +570,7 @@ export default function ResourcesPage() {
               className="mt-4"
               onClick={clearAllFilters}
             >
-              Clear all filters
+              {t("clearAllFilters")}
             </Button>
           )}
         </div>

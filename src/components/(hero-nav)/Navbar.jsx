@@ -115,7 +115,7 @@ const Navbar = () => {
             }`}
             asChild
           >
-           {isAuth ? <Link href={"/dashboard"}>Dashboard</Link> : <Link href="/login">{t("login")}</Link>}
+           {isAuth ? <Link href={"/dashboard"}>{t("dashboard")}</Link> : <Link href="/login">{t("login")}</Link>}
           </Button>
 
           <ModeToggle />
