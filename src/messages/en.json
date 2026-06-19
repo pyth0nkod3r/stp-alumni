@@ -5,7 +5,8 @@
     "about": "About",
     "contact": "Contact Us",
     "login": "Log In",
-    "join": "Join as Alumni"
+    "join": "Join as Alumni",
+    "dashboard": "Dashboard"
   },
   "Hero": {
     "imageAlt": "Alumni networking and connecting at professional event",
@@ -348,7 +349,36 @@
     "resource5Title": "Employee Handbook Template",
     "resource5Desc": "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor",
     "resource6Title": "Project Management Guide",
-    "resource6Desc": "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"
+    "resource6Desc": "Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor",
+    "uploadSuccess": "Resource uploaded successfully!",
+    "uploadError": "Failed to upload resource. Please try again.",
+    "selectFileError": "Please select a file to upload.",
+    "uploadTitle": "Upload Resource",
+    "uploadDesc": "Share educational materials, templates, and documents with the community.",
+    "formTitle": "Title",
+    "formTitlePlaceholder": "Enter resource title",
+    "formDesc": "Description",
+    "formDescPlaceholder": "Describe the resource",
+    "formCategory": "Category",
+    "formCategoryPlaceholder": "Select a category",
+    "formFile": "File",
+    "cancel": "Cancel",
+    "uploadButton": "Upload Resource",
+    "advancedFilters": "Advanced Filters",
+    "fileType": "File Type",
+    "filesLabel": "{type} Files",
+    "sortBy": "Sort By",
+    "sortNewest": "Newest First",
+    "sortOldest": "Oldest First",
+    "sortAlphabetical": "Title (A-Z)",
+    "clearAll": "Clear All",
+    "apply": "Apply",
+    "downloadStarted": "Download started",
+    "downloadError": "No file available for download",
+    "noResourcesFound": "No resources found",
+    "adjustSearch": "Try adjusting your search query or filters to find what you're looking for.",
+    "noResourcesCategory": "No resources available in this category.",
+    "clearAllFilters": "Clear all filters"
   },
   "Marketplace": {
     "title": "Marketplace",
@@ -377,7 +407,20 @@
     "educationPhD": "Ph.D in Software Engineering",
     "educationMSc": "MSc Business Admin",
     "experience10": "10 years Experience",
-    "experience5": "5 years Experience"
+    "experience5": "5 years Experience",
+    "loading": "Loading...",
+    "cohort": "Cohort",
+    "cohortAll": "All Cohorts",
+    "activeFilters": "Active filters:",
+    "filterSearch": "Search",
+    "filterRole": "Role",
+    "filterSector": "Sector",
+    "filterLocation": "Location",
+    "filterCohort": "Cohort",
+    "clearAll": "Clear all",
+    "noAlumniFound": "No alumni found",
+    "adjustFilters": "Try adjusting your filters",
+    "clearAllFilters": "Clear all filters"
   },
   "ComingSoon": {
     "message": "Coming Soon",
@@ -427,9 +470,32 @@
     "passwordMismatch": "Passwords do not match",
     "passwordStrengthError": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)"
   },
+  "CommunityHero": {
+    "headlineMain": "Connect.",
+    "headlineSub1": "Share.",
+    "headlineSub2": "Participate.",
+    "description": "Join conversations, attend events and grow together through engaging discussions, community activities, and real connections.",
+    "marketplaceTitle": "Marketplace",
+    "marketplaceDesc": "Connect, share, and grow with people in your community",
+    "eventsTitle": "Events",
+    "eventsDesc": "Discover and join upcoming events."
+  },
   "SupportCTA": {
     "title": "Have Questions? We're Here to Help",
     "description": "Whether you are a new applicant or an active member, our team is here to assist you. Contact us directly at {email} or send us a message — we will respond promptly.",
     "button": "Support"
+  },
+  "Contact": {
+    "title": "Support",
+    "description": "Have Any <bold>Questions or need Help?</bold> Fill Out The Form Below, And We'll Get Back To You As Soon As Possible.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter Your Name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Enter Your Email",
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "Enter The Subject",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Enter Your Message...",
+    "submitButton": "Submit Message"
   }
 }

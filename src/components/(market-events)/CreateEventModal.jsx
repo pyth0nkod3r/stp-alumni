@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -41,7 +41,8 @@ export function CreateEventModal({ open, onOpenChange }) {
   // Initialize React Hook Form
   const { register, handleSubmit, control, setValue, watch, reset } = useForm({
     defaultValues: {
-      eventType: "online",
+      isOnline: true,
+      isInPerson: false,
       eventFormat: "",
       eventName: "",
       timezone: "",
@@ -57,7 +58,8 @@ export function CreateEventModal({ open, onOpenChange }) {
     },
   });
 
-  const eventType = watch("eventType");
+  const isOnline = watch("isOnline");
+  const isInPerson = watch("isInPerson");
   const queryClient = useQueryClient();
 
   const createEventMutation = useMutation({
@@ -77,6 +79,11 @@ export function CreateEventModal({ open, onOpenChange }) {
 
 
   const onSubmit = (data) => {
+    if (!data.isOnline && !data.isInPerson) {
+      toast.error("At least one event type must be selected.");
+      return;
+    }
+
     if (
       !data.eventName ||
       !data.startDate ||
@@ -88,8 +95,9 @@ export function CreateEventModal({ open, onOpenChange }) {
       return;
     }
 
+    const finalEventType = data.isOnline && data.isInPerson ? "hybrid" : data.isOnline ? "online" : "in-person";
     const formData = new FormData();
-    formData.append("type", data.eventType);
+    formData.append("type", finalEventType);
     formData.append("format", data.eventFormat || "json");
     formData.append("name", data.eventName);
     formData.append("timeZone", data.timezone);
@@ -112,7 +120,7 @@ export function CreateEventModal({ open, onOpenChange }) {
       formData.append("externalLink", data.eventLink);
     }
 
-    if (data.eventType === "in-person") {
+    if (finalEventType === "in-person" || finalEventType === "hybrid") {
       formData.append("address", data.address);
       formData.append("venue", data.venue);
     }
@@ -194,29 +202,51 @@ export function CreateEventModal({ open, onOpenChange }) {
             )}
           </div>
 
-          {/* Event Type (Radio Group) */}
+          {/* Event Type (Checkboxes) */}
           <div className="space-y-2">
             <Label className="text-sm text-muted-foreground">Event type</Label>
-            <Controller
-              name="eventType"
-              control={control}
-              render={({ field }) => (
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="online" id="online" />
-                    <Label htmlFor="online">Online</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="in-person" id="in-person" />
-                    <Label htmlFor="in-person">In person</Label>
-                  </div>
-                </RadioGroup>
-              )}
-            />
+            <div className="flex gap-6 pt-1">
+              <div className="flex items-center space-x-2">
+                <Controller
+                  name="isOnline"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="online"
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        // Prevent unchecking both
+                        if (!checked && !isInPerson) {
+                          return;
+                        }
+                        field.onChange(checked);
+                      }}
+                    />
+                  )}
+                />
+                <Label htmlFor="online" className="text-sm font-medium cursor-pointer">Online</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Controller
+                  name="isInPerson"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="in-person"
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        // Prevent unchecking both
+                        if (!checked && !isOnline) {
+                          return;
+                        }
+                        field.onChange(checked);
+                      }}
+                    />
+                  )}
+                />
+                <Label htmlFor="in-person" className="text-sm font-medium cursor-pointer">In person</Label>
+              </div>
+            </div>
           </div>
 
           {/* Event Format (Select) */}
@@ -308,7 +338,7 @@ export function CreateEventModal({ open, onOpenChange }) {
               <Input type="time" {...register("endTime")} />
             </div>
           </div>
-          {eventType === "in-person" && (
+          {isInPerson && (
             <>
               {/* Address */}
               <div className="space-y-2">

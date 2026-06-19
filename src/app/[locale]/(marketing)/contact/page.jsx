@@ -21,17 +21,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavbar } from '@/contexts/NavbarContext';
+import { useTranslations } from 'next-intl';
 
 export default function SupportSection() {
-
-     const {size: { height },
+  const t = useTranslations("Contact");
+  const {size: { height },
   } = useNavbar();
 
 
   return (
     <section className="relative w-full min-h-screen bg-white px-6 pt-5 pb-20 overflow-hidden flex items-center justify-center" style={{ marginTop: `${height}px` }}>
       {/* Decorative Background Circles */}
-    {/* Figma SVG Eclipses - Positioned at corners */}
+      {/* Figma SVG Eclipses - Positioned at corners */}
       <div className="absolute bottom-20 left-0  opacity-60 w-4xl">
         <BackgroundPattern />
       </div>
@@ -43,9 +44,9 @@ export default function SupportSection() {
         
         {/* Left Content */}
         <div className="space-y-8">
-          <h2 className="text-5xl font-semibold text-slate-900">Support</h2>
+          <h2 className="text-5xl font-semibold text-slate-900">{t("title")}</h2>
           <p className="text-slate-500 text-lg max-w-md leading-relaxed">
-            Have Any <span className="text-indigo-900 font-bold">Questions or need Help?</span> Fill Out The Form Below, And We'll Get Back To You As Soon As Possible.
+            {t.rich('description', { bold: (chunks) => <span className="text-indigo-900 font-bold">{chunks}</span> })}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 pt-4">
@@ -64,27 +65,27 @@ export default function SupportSection() {
         <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[32px] p-4 sm:p-8">
           <CardContent className="space-y-6 pt-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-700 font-bold">Name</Label>
-              <Input id="name" placeholder="Enter Your Name" className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
+              <Label htmlFor="name" className="text-slate-700 font-bold">{t("nameLabel")}</Label>
+              <Input id="name" placeholder={t("namePlaceholder")} className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700 font-bold">Email</Label>
-              <Input id="email" type="email" placeholder="Enter Your Email" className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
+              <Label htmlFor="email" className="text-slate-700 font-bold">{t("emailLabel")}</Label>
+              <Input id="email" type="email" placeholder={t("emailPlaceholder")} className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject" className="text-slate-700 font-bold">Subject</Label>
-              <Input id="subject" placeholder="Enter The Subject" className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
+              <Label htmlFor="subject" className="text-slate-700 font-bold">{t("subjectLabel")}</Label>
+              <Input id="subject" placeholder={t("subjectPlaceholder")} className="h-12 bg-slate-50/50 border-slate-100 rounded-lg" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message" className="text-slate-700 font-bold">Message</Label>
-              <Textarea id="message" placeholder="Enter You Message..." className="min-h-[150px] bg-slate-50/50 border-slate-100 rounded-lg resize-none" />
+              <Label htmlFor="message" className="text-slate-700 font-bold">{t("messageLabel")}</Label>
+              <Textarea id="message" placeholder={t("messagePlaceholder")} className="min-h-[150px] bg-slate-50/50 border-slate-100 rounded-lg resize-none" />
             </div>
 
             <Button className="w-full h-14 bg-[#1e2d7d] hover:bg-[#16225f] text-white rounded-lg text-lg font-medium transition-colors">
-              Submit Message
+              {t("submitButton")}
             </Button>
           </CardContent>
         </Card>

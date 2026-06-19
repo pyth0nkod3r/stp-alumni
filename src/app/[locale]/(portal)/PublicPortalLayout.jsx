@@ -22,7 +22,8 @@ export default function PublicPortalLayout({ children, pageTitle }) {
             alt="BlazingTorrent"
             width={140}
             height={36}
-            className="object-contain h-9 w-auto"
+            className="object-contain h-9"
+            style={{ width: "auto", height: "auto" }}
             priority
           />
         </Link>

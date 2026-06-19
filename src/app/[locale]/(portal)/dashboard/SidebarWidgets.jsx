@@ -29,13 +29,13 @@ function SidebarWidgets({ t, height }) {
   const router = useRouter();
   // Fetch your network data
   const { data: networkData, isLoading: isLoadingNetwork } = useQuery({
-    queryKey: ["network"],
+    queryKey: ["network", "connections"],
     queryFn: () => networkService.getConnections(),
   });
 
   // Fetch invitations/connections data
   const { data: connectionsData, isLoading: isLoadingConnections } = useQuery({
-    queryKey: ["connections"],
+    queryKey: ["invitations"],
     queryFn: () => networkService.getIncomingRequests(),
   });
 
@@ -72,9 +72,9 @@ function SidebarWidgets({ t, height }) {
     >
       <ModernScrollArea
         className={` w-full`}
-        // style={{
-        //   height: `calc(100vh - ${height}px - 1rem)`,
-        // }}
+      // style={{
+      //   height: `calc(100vh - ${height}px - 1rem)`,
+      // }}
       >
         <div className="space-y-6">
           {/* Your Network */}
@@ -95,7 +95,7 @@ function SidebarWidgets({ t, height }) {
                     // .filter((ele) => ele.connectionStatus === "ACCEPTED")
                     .slice(0, 5)
                     .map((contact, index) => (
-                      <ConnectedUser contact={contact} index={index} />
+                      <ConnectedUser key={contact.userId || index} contact={contact} index={index} />
                     ))
                 ) : (
                   <div className="text-sm text-gray-500 text-center py-4 bg-white rounded-lg">

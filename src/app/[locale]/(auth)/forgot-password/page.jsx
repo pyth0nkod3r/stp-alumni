@@ -51,6 +51,7 @@ export default function ForgotPasswordPage() {
               alt="Background"
               fill
               className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#155DFC]/30 to-[#155DFC]/60" />
@@ -105,6 +106,7 @@ export default function ForgotPasswordPage() {
             alt="Background"
             fill
             className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 50vw"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#155DFC]/30 to-[#155DFC]/60" />

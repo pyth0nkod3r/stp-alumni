@@ -79,6 +79,7 @@ export default function LoginPage() {
             alt="Login background"
             fill
             className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 50vw"
             priority
           />
           <div className="absolute inset-0 bg-linear-to-b from-transparent via-[#155DFC]/30 to-[#155DFC]/60" />

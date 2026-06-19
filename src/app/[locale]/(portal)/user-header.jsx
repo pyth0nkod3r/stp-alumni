@@ -102,7 +102,8 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
             alt="BlazingTorrent"
             width={140}
             height={40}
-            className="object-contain h-10 w-auto"
+            className="object-contain h-10"
+            style={{ width: "auto", height: "auto" }}
             priority
           />
         </Link>

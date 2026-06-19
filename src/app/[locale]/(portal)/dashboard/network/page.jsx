@@ -26,7 +26,7 @@ const Page = () => {
     isLoading: isNetworkLoading,
     error: networkError,
   } = useQuery({
-    queryKey: ["network"],
+    queryKey: ["network", "list"],
     queryFn: () => networkService.getNetwork(),
     staleTime: 5 * 60 * 1000,
   });

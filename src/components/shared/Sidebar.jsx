@@ -81,6 +81,7 @@ const Sidebar = ({ isCollapsed }) => {
           width={75}
           height={50}
           className={`object-contain object-left opacity-100 ${isExpanded ? "max-w-50" : "max-w-12"}`}
+          style={{ width: "auto", height: "auto" }}
           priority
         />
       </Link>

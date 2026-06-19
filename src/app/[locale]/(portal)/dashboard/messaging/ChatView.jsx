@@ -347,7 +347,8 @@ const currentUserId = data?.data?.userId || data?.data?.id;
                   alt="Preview"
                   width={200}
                   height={150}
-                  className="object-cover rounded-lg max-h-32 w-auto"
+                  className="object-cover rounded-lg max-h-32"
+                  style={{ width: "auto", height: "auto" }}
                 />
               </div>
             ) : (

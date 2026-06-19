@@ -47,8 +47,6 @@ const Navbar = () => {
 
   const isAuth = data?.userId || null;
 
-  console.log(isAuth,"isAuth")
-
   const [isScrolled, setIsScrolled] = useState(false);
 
   const useDarkText = isScrolled || isPublicPage;
@@ -81,7 +79,8 @@ const Navbar = () => {
             alt="BlazingTorrent"
             width={240}
             height={50}
-            className="object-contain h-[62px] w-auto"
+            className="object-contain h-[62px]"
+            style={{ width: "auto", height: "auto" }}
             priority
           />
         </Link>
@@ -115,7 +114,7 @@ const Navbar = () => {
             }`}
             asChild
           >
-           {isAuth ? <Link href={"/dashboard"}>Dashboard</Link> : <Link href="/login">{t("login")}</Link>}
+           {isAuth ? <Link href={"/dashboard"}>{t("dashboard")}</Link> : <Link href="/login">{t("login")}</Link>}
           </Button>
 
           <ModeToggle />

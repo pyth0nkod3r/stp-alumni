@@ -200,6 +200,7 @@ export default function ProfileSetupPage() {
             alt="Profile setup background"
             fill
             className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 50vw"
             priority
           />
           <div className="absolute inset-0 bg-linear-to-b from-black/40 via-[#155DFC]/30 to-[#155DFC]/70" />

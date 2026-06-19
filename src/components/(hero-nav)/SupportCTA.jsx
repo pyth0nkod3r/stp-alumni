@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 
 const SupportCTA = () => {
   const t = useTranslations("SupportCTA");
-
   return (
     <section className="w-full bg-linear-to-r from-[#4279d6] via-[#2b56a1] to-[#263e75] py-12 px-6 flex justify-center items-center">
       {/* Inner Container with the dashed border effect from your mockup */}

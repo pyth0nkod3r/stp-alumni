@@ -103,7 +103,7 @@ export function InvitationsList({ invitations=[], isLoading }) {
       <CardContent className="space-y-0">
         {displayedInvitations.map((invitation, index) => (
           <InvitationItem
-            key={invitation.connectionId}
+            key={invitation.connectionId || invitation.id || index}
             invitation={invitation}
             index={index}
             len={displayedInvitations.length}

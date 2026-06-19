@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Inter, Cairo } from "next/font/google";
 import ".././globals.css";
 import { NextIntlClientProvider } from "next-intl";
 import { routing } from "@/i18n/routing";
@@ -12,6 +12,7 @@ import QueryProvider from "@/lib/providers/QueryProvider";
 import { AuthProvider } from "@/lib/hooks/useUser";
 
 const inter = Inter({ subsets: ["latin"] });
+const cairo = Cairo({ subsets: ["arabic"] });
 
 export const metadata = {
   title: "BlazingTorrent | Private Business Exchange for Stanford Seed Alumni",
@@ -22,17 +23,20 @@ export default async function RootLayout({ children, params }) {
   // 1. Await the params before accessing properties
   const { locale } = await params;
 
-  // 2. Now 'locale' will be defined (e.g., "en" or "fr")
-  // console.log(locale, "locale detected");
+  // 2. Now 'locale' will be defined (e.g., "en" or "fr" or "ar")
   if (!routing.locales.includes(locale)) {
     notFound();
   }
 
-  // Load messages for this locale so /fr shows French regardless of getRequestConfig
+  // Load messages for this locale
   const messages = (await import(`../../messages/${locale}.json`)).default;
+  const isRtl = locale === 'ar';
+  const fontClass = isRtl ? cairo.className : inter.className;
+  const dir = isRtl ? 'rtl' : 'ltr';
+
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body className={inter.className}>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
+      <body className={fontClass}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
