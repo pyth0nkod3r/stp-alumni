@@ -56,7 +56,7 @@ export default function SupportSection() {
             </div>
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-slate-700" />
-              <span className="text-slate-700 font-medium">support@blazingtorrent.com</span>
+              <span className="text-slate-700 font-medium">support@blazingtorrent.org</span>
             </div>
           </div>
         </div>

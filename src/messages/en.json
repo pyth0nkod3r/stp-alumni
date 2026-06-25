@@ -10,14 +10,14 @@
   },
   "Hero": {
     "imageAlt": "Alumni networking and connecting at professional event",
-    "badgeText": "Connecting 10,000+ Alumni Worldwide",
+    "badgeText": "Verified Stanford Seed Alumni Network",
     "headlineMain": "Stay Connected.",
     "headlineSub": "Grow Together.",
     "description": "Connect with graduates, entrepreneurs, and professionals across sectors. Build your network, find mentors, and unlock opportunities.",
     "getStarted": "Get Started Free",
     "watchDemo": "Watch Demo",
     "featureFree": "Free to Join",
-    "featureIndustries": "50+ Industries",
+    "featureIndustries": "Diverse Sectors",
     "featureNetwork": "Global Network"
   },
   "Footer": {
@@ -25,7 +25,7 @@
     "tagline": "Empowering graduates, entrepreneurs, and professionals through networking, mentorship, and opportunities.",
     "disclaimer": "BlazingTorrent is an alumni-led platform for members of the Stanford Seed community. It is not an official platform of Stanford University, Stanford GSB, or Stanford Seed.",
     "copyright": "© {year} BlazingTorrent. All rights reserved.",
-    "email": "support@blazingtorrent.com",
+    "email": "support@blazingtorrent.org",
     "product": {
       "title": "Product",
       "features": "Features",
@@ -56,7 +56,7 @@
     "badgeText": "Join Today - It's Free",
     "headlineMain": "Ready to unlock your ",
     "headlineSub": "full potential?",
-    "description": "Join 10,000+ alumni who are networking, learning, and growing together in the BlazingTorrent community.",
+    "description": "Join verified Stanford Seed alumni who are networking, collaborating, and growing together in the BlazingTorrent community.",
     "getStarted": "Get Started Free",
     "watchDemo": "Watch Demo",
     "featureFree": "Trusted by professionals",
@@ -66,7 +66,7 @@
   "Professional": {
     "network": {
       "title": "Build Your Professional Network",
-      "desc": "Connect with alumni across 50+ industries worldwide. Filter by sector, location, and skills to find the perfect connections for your career goals.",
+      "desc": "Connect with verified alumni across diverse industries worldwide. Filter by sector, location, and skills to find the perfect connections for your career goals.",
       "item1": "Advanced search filters",
       "item2": "Direct messaging",
       "item3": "Group discussions",
@@ -163,11 +163,15 @@
   "BuildTogether": {
     "titleMain": "Building together,",
     "titleStronger": "growing stronger",
-    "description": "Join thousands of alumni who are creating opportunities and making impact",
-    "activeMember": "Active member",
-    "industries": "Industries",
-    "opportunityShared": "Opportunity Shared",
-    "sanctionRate": "Member Satisfaction Rate",
+    "description": "Connect with verified Stanford Seed alumni to discover curated opportunities and build strategic partnerships.",
+    "stat1Text": "Verified Members",
+    "stat1Val": "100%",
+    "stat2Text": "Access Control",
+    "stat2Val": "Invite-Only",
+    "stat3Text": "Opportunity Sharing",
+    "stat3Val": "Direct P2P",
+    "stat4Text": "Primary Focus",
+    "stat4Val": "Pan-African",
     "foundingTitle": "Founding Member Program",
     "foundingDescription": "We are currently accepting a limited number of early adopters into our founding cohort. Join fellow verified Stanford Seed alumni to start networking, sharing opportunities, and shaping our community.",
     "foundingCTA": "Apply for Early Access"

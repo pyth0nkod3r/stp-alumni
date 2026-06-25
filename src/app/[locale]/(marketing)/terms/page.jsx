@@ -65,8 +65,8 @@ export default function TermsOfServicePage() {
           <p>
             If you have questions about these Terms of Service, please contact us at:
             <br />
-            <a href="mailto:support@blazingtorrent.com" className="text-indigo-600 hover:text-indigo-800 font-medium mt-1 inline-block">
-              support@blazingtorrent.com
+            <a href="mailto:support@blazingtorrent.org" className="text-indigo-600 hover:text-indigo-800 font-medium mt-1 inline-block">
+              support@blazingtorrent.org
             </a>
           </p>
         </div>

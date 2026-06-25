@@ -12,14 +12,14 @@
   },
   "Hero": {
     "imageAlt": "Anciens élèves réseautant et se connectant lors d'un événement professionnel",
-    "badgeText": "Connecter plus de 10 000 anciens élèves dans le monde",
+    "badgeText": "Réseau vérifié des anciens de Stanford Seed",
     "headlineMain": "Restez Connectés.",
     "headlineSub": "Grandissons Ensemble.",
     "description": "Connectez-vous avec des diplômés, des entrepreneurs et des professionnels de tous secteurs. Développez votre réseau, trouvez des mentors et débloquez des opportunités.",
     "getStarted": "Commencer Gratuitement",
     "watchDemo": "Voir la Démo",
     "featureFree": "Inscription Gratuite",
-    "featureIndustries": "Plus de 50 Secteurs",
+    "featureIndustries": "Secteurs divers",
     "featureNetwork": "Réseau Mondial"
   },
   "Footer": {
@@ -27,7 +27,7 @@
     "tagline": "Soutenir les diplômés, les entrepreneurs et les professionnels grâce au réseautage, au mentorat et aux opportunités.",
     "disclaimer": "BlazingTorrent est une plateforme dirigée par des anciens élèves pour les membres de la communauté Stanford Seed. Ce n'est pas une plateforme officielle de l'Université de Stanford, de la Stanford GSB ou de Stanford Seed.",
     "copyright": "© {year} BlazingTorrent. Tous droits réservés.",
-    "email": "support@blazingtorrent.com",
+    "email": "support@blazingtorrent.org",
     "product": {
       "title": "Produit",
       "features": "Fonctionnalités",
@@ -58,7 +58,7 @@
     "badgeText": "Inscrivez-vous aujourd'hui - C'est gratuit",
     "headlineMain": "Prêt à libérer votre ",
     "headlineSub": "plein potentiel ?",
-    "description": "Rejoignez plus de 10 000 diplômés qui réseautent, apprennent et progressent ensemble au sein de la communauté BlazingTorrent.",
+    "description": "Rejoignez des anciens de Stanford Seed vérifiés qui réseautent, collaborent et grandissent ensemble au sein de la communauté BlazingTorrent.",
     "getStarted": "Commencer gratuitement",
     "watchDemo": "Voir la démo",
     "featureFree": "Approuvé par des professionnels",
@@ -203,11 +203,15 @@
   "BuildTogether": {
     "titleMain": "Bâtir ensemble,",
     "titleStronger": "devenir plus fort",
-    "description": "Rejoignez des milliers d'anciens élèves qui créent des opportunités et génèrent un impact",
-    "activeMember": "Membre actif",
-    "industries": "Secteurs",
-    "opportunityShared": "Opportunités partagées",
-    "sanctionRate": "Taux de satisfaction des membres",
+    "description": "Connectez-vous avec des anciens de Stanford Seed vérifiés pour découvrir des opportunités sélectionnées et établir des partenariats stratégiques.",
+    "stat1Text": "Membres vérifiés",
+    "stat1Val": "100%",
+    "stat2Text": "Contrôle d'accès",
+    "stat2Val": "Sur invitation",
+    "stat3Text": "Partage d'opportunités",
+    "stat3Val": "Direct P2P",
+    "stat4Text": "Focus principal",
+    "stat4Val": "Panafricain",
     "foundingTitle": "Programme des Membres Fondateurs",
     "foundingDescription": "Nous acceptons actuellement un nombre limité d'adoptants précoces au sein de notre cohorte de fondateurs. Rejoignez d'autres anciens élèves certifiés de Stanford Seed pour commencer à réseauter, partager des opportunités et façonner notre communauté.",
     "foundingCTA": "Demander un Accès Anticipé"
@@ -215,7 +219,7 @@
   "Professional": {
     "network": {
       "title": "Développez Votre Réseau Professionnel",
-      "desc": "Connectez-vous avec des anciens de plus de 50 secteurs dans le monde. Filtrez par secteur, lieu et compétences pour trouver les relations idéales pour vos objectifs de carrière.",
+      "desc": "Connectez-vous avec des anciens de divers secteurs dans le monde. Filtrez par secteur, lieu et compétences pour trouver les relations idéales pour vos objectifs de carrière.",
       "item1": "Filtres de recherche avancés",
       "item2": "Messagerie directe",
       "item3": "Discussions de groupe",

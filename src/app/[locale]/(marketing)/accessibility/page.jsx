@@ -44,8 +44,8 @@ export default function AccessibilityStatementPage() {
             We welcome your feedback on the accessibility of the BlazingTorrent platform. If you encounter any accessibility barriers, please let us know by contacting our Support Team:
           </p>
           <p>
-            <a href="mailto:support@blazingtorrent.com" className="text-indigo-600 hover:text-indigo-800 font-medium mt-1 inline-block">
-              support@blazingtorrent.com
+            <a href="mailto:support@blazingtorrent.org" className="text-indigo-600 hover:text-indigo-800 font-medium mt-1 inline-block">
+              support@blazingtorrent.org
             </a>
           </p>
           <p>

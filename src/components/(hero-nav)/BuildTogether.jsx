@@ -8,10 +8,10 @@ function BuildTogether() {
   const t = useTranslations('BuildTogether');
 
   const stats = [
-    { text: t('activeMember'), num: 10000 },
-    { text: t('industries'), num: 50 },
-    { text: t('opportunityShared'), num: 5000 },
-    { text: t('sanctionRate'), num: 98 },
+    { text: t('stat1Text'), val: t('stat1Val') },
+    { text: t('stat2Text'), val: t('stat2Val') },
+    { text: t('stat3Text'), val: t('stat3Val') },
+    { text: t('stat4Text'), val: t('stat4Val') },
   ];
 
   return (
@@ -26,13 +26,10 @@ function BuildTogether() {
         </p>
 
         <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-4 max-w-4xl mt-6 px-4">
-          {stats.map((ele, i) => (
+          {stats.map((ele) => (
             <div className="text-center space-y-1 bg-stp-blue-dark py-5 px-8 rounded-xl border border-white/5" key={ele.text}>
-              <p className="text-[#00D3F2] text-3xl font-extrabold flex items-center justify-center">
-                {ele.num.toLocaleString()} 
-                <span className="text-lg ml-0.5">
-                  {i !== 3 ? "+" : "%"}
-                </span>
+              <p className="text-[#00D3F2] text-2xl md:text-3xl font-extrabold flex items-center justify-center">
+                {ele.val} 
               </p>
               <p className="text-sm text-[#90A1B9]">{ele.text}</p>
             </div>
