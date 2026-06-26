@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import HeroBadge from "./HeroBadge";
 import React from "react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 
 const JoinToday = () => {
   const t = useTranslations("JoinToday");
@@ -42,17 +43,12 @@ const JoinToday = () => {
             variant="JoinToday"
             size="lg"
             className={"bg-white text-[#28282b]"}
+            asChild
           >
-            {t("getStarted")}
-            <ArrowRight className="ml-1 h-5 w-5" />
-          </Button>
-          <Button
-            variant="JoinTodayOutline"
-            size="lg"
-            className={"border border-[#2B7FFF]"}
-          >
-            <Play className="mr-1 h-4 w-4" />
-            {t("watchDemo")}
+            <Link href="/contact">
+              {t("getStarted")}
+              <ArrowRight className="ml-1 h-5 w-5" />
+            </Link>
           </Button>
         </div>
 

@@ -52,13 +52,16 @@ export default function MarketplaceUi() {
     };
     
     if (Array.isArray(sector)) {
-      return sector.map(s => {
-        const mapped = sectorMap[s.toLowerCase()];
-        return mapped || s;
-      }).join(", ");
+      return sector
+        .filter(Boolean)
+        .map(s => {
+          const mapped = sectorMap[String(s).toLowerCase()];
+          return mapped || s;
+        })
+        .join(", ");
     }
     
-    return sectorMap[sector.toLowerCase()] || sector;
+    return sectorMap[String(sector).toLowerCase()] || sector;
   };
 
   // Separate query for ALL data (for filters options)
@@ -101,7 +104,7 @@ export default function MarketplaceUi() {
   // Extract unique sectors from ALL data
   const sectors = useMemo(() => {
     if (!allData?.data) return [];
-    const allSectors = allData.data.map(ele => ele.sector).flat();
+    const allSectors = allData.data.map(ele => ele.sector).flat().filter(Boolean);
     return [...new Set(allSectors)].sort();
   }, [allData]);
 
@@ -306,7 +309,7 @@ function MarketplaceContent({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {data.map((alumni, index) => (
               <AlumniCard
-                key={alumni.createdAt || index}
+                key={alumni.userId || index}
                 alumni={alumni}
                 t={t}
                 getSectorDisplay={getSectorDisplay}
@@ -381,6 +384,7 @@ const AlumniCard = ({ alumni, t }) => {
             src={imageSrc}
             alt={fullName}
             fill
+            sizes="80px"
             className="object-cover rounded-full border-2 border-white shadow-md"
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />

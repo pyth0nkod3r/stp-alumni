@@ -47,7 +47,7 @@ export default async function RootLayout({ children, params }) {
             <QueryProvider>
               
 
-              <Toaster position="center" />
+              <Toaster position="bottom-right" />
               <AuthProvider>
 
               <NavbarProvider>

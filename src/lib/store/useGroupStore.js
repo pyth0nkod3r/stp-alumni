@@ -29,19 +29,24 @@ export const useGroupStore = create((set) => ({
 
   // 👇 NEW: Add newly created group to store
   addGroupLocally: (newGroup) =>
-    set((state) => ({
-      groups: state.groups 
-        ? [...state.groups, { 
-            ...newGroup, 
-            isMember: true, // Creator is automatically a member
-            myRole: 'ADMIN',
-            memberCount: 1,
-          }] 
-        : [{ 
-            ...newGroup, 
-            isMember: true, 
-            myRole: 'ADMIN',
-            memberCount: 1,
-          }],
-    })),
+    set((state) => {
+      // The backend might return the group object nested inside a 'group' property or directly
+      const groupData = newGroup?.group ? newGroup.group : newGroup;
+      
+      const mappedGroup = {
+        groupId: groupData?.groupId || groupData?.id || groupData?._id,
+        name: groupData?.name || groupData?.groupName || '',
+        description: groupData?.description || '',
+        thumbnailUrl: groupData?.thumbnailUrl || groupData?.thumbnail || groupData?.coverImagePath || null,
+        isMember: true, // Creator is automatically a member
+        myRole: 'ADMIN',
+        memberCount: 1,
+      };
+
+      return {
+        groups: state.groups 
+          ? [...state.groups, mappedGroup] 
+          : [mappedGroup],
+      };
+    }),
 }));

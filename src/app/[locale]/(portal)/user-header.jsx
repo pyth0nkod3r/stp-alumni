@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
-import { useScreenSize, useSize } from "react-haiku";
+import { useScreenSize } from "react-haiku";
+import { useElementSize } from "@/lib/hooks/useElementSize";
 import { useNavbar } from "@/contexts/NavbarContext";
 import useAuthStore from "@/lib/store/useAuthStore";
 import { useAuth } from "@/lib/hooks/useUser";
@@ -33,7 +34,7 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const elementRef = useRef(null);
-  const { width, height } = useSize(elementRef);
+  const { width, height } = useElementSize(elementRef);
   const { setUserSize } = useNavbar();
 
   const screenSize = useScreenSize()

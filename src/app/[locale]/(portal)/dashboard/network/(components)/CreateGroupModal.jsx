@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { X, Image as ImageIcon, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,20 +21,26 @@ import { useAuth } from "@/lib/hooks/useUser";
 export default function CreateGroupModal({ isOpen, onClose, onCreateSuccess }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   
   const { data: authData } = useAuth();
   const nameInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setName("");
       setDescription("");
-      setThumbnailUrl("");
+      setThumbnailFile(null);
+      setPreviewUrl("");
       setErrors({});
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       // Focus name input after animation
       setTimeout(() => nameInputRef.current?.focus(), 200);
     }
@@ -46,9 +52,6 @@ export default function CreateGroupModal({ isOpen, onClose, onCreateSuccess }) {
     if (name.trim().length < 3) newErrors.name = "Name must be at least 3 characters";
     if (!description.trim()) newErrors.description = "Description is required";
     if (description.trim().length < 10) newErrors.description = "Description must be at least 10 characters";
-    if (thumbnailUrl && !/^https?:\/\/.+/.test(thumbnailUrl)) {
-      newErrors.thumbnailUrl = "Please enter a valid URL";
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -59,20 +62,29 @@ export default function CreateGroupModal({ isOpen, onClose, onCreateSuccess }) {
     
     setIsSubmitting(true);
     try {
-      const response = await groupService.createGroup({
-        name: name.trim(),
-        description: description.trim(),
-        thumbnailUrl: thumbnailUrl.trim() || null,
-      });
+      const formData = new FormData();
+      formData.append("name", name.trim());
+      formData.append("description", description.trim());
+      formData.append("privacyMode", "PUBLIC");
+      if (thumbnailFile) {
+        formData.append("thumbnail", thumbnailFile);
+      }
+
+      const response = await groupService.createGroup(formData);
 
       if (response?.status || response?.success) {
         toast.success(response.message || "Group created successfully!");
         
-        // Pass new group data back to parent for optimistic update
-        if (response.data) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-          onCreateSuccess?.(response.data);
-        }
+        // Construct a robust group object combining response data and local form state
+        const groupData = response.data || response.group || {};
+        const groupPayload = {
+          groupId: groupData.groupId || groupData.id || response.id || `temp_${Date.now()}`,
+          name: groupData.name || response.name || name.trim(),
+          description: groupData.description || response.description || description.trim(),
+          thumbnailUrl: groupData.thumbnailUrl || groupData.thumbnail || response.thumbnailUrl || previewUrl || null,
+        };
         
+        onCreateSuccess?.(groupPayload);
         onClose();
       } else {
         toast.error(response?.message || "Failed to create group");
@@ -85,12 +97,23 @@ export default function CreateGroupModal({ isOpen, onClose, onCreateSuccess }) {
     }
   };
 
-  const handleThumbnailChange = (e) => {
-    const url = e.target.value;
-    setThumbnailUrl(url);
-    // Clear error when user starts typing
-    if (errors.thumbnailUrl) {
-      setErrors(prev => ({ ...prev, thumbnailUrl: null }));
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setThumbnailFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setThumbnailFile(null);
+    setPreviewUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -169,42 +192,45 @@ export default function CreateGroupModal({ isOpen, onClose, onCreateSuccess }) {
             </p>
           </div>
 
-          {/* Thumbnail URL (Optional) */}
+          {/* Cover Image Upload (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="thumbnailUrl" className="text-sm font-medium text-[#020618]">
-              Cover Image URL <span className="text-slate-400 font-normal">(optional)</span>
+            <Label className="text-sm font-medium text-[#020618]">
+              Cover Image <span className="text-slate-400 font-normal">(optional)</span>
             </Label>
-            <div className="relative">
-              <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                id="thumbnailUrl"
-                type="url"
-                value={thumbnailUrl}
-                onChange={handleThumbnailChange}
-                placeholder="https://example.com/image.png"
-                className={`pl-10 h-11 ${errors.thumbnailUrl ? "border-red-300 focus:border-red-500" : ""}`}
-                disabled={isSubmitting}
-              />
-            </div>
-            {errors.thumbnailUrl && (
-              <p className="text-xs text-red-500 mt-1">{errors.thumbnailUrl}</p>
-            )}
-            <p className="text-xs text-slate-400">
-              Paste a link to an image (PNG, JPG, or GIF)
-            </p>
-            
-            {/* Preview */}
-            {thumbnailUrl && /^https?:\/\/.+/.test(thumbnailUrl) && (
-              <div className="mt-2 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={isSubmitting}
+            />
+            {previewUrl ? (
+              <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                 <img
-                  src={thumbnailUrl}
+                  src={previewUrl}
+                  className="w-full h-32 object-cover"
                   alt="Preview"
-                  className="h-24 w-full object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<p class="p-3 text-xs text-slate-400">Image failed to load</p>';
-                  }}
                 />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 transition-colors shadow-md"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#155DFC]/50 hover:bg-slate-50/50 transition-all duration-200"
+              >
+                <Upload className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+                <p className="text-sm font-medium text-slate-600">Upload a cover image</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  PNG, JPG, or GIF up to 5MB
+                </p>
               </div>
             )}
           </div>

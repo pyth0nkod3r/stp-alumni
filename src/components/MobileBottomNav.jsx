@@ -2,7 +2,7 @@
 import { Home, Users, ShoppingBag, Newspaper, Calendar, Briefcase, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, usePathname } from "@/i18n/routing";
-import { useSize } from "react-haiku";
+import { useElementSize } from "@/lib/hooks/useElementSize";
 import { useNavbar } from "@/contexts/NavbarContext";
 import {
   Tooltip,
@@ -25,7 +25,7 @@ const navItems = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   const elementRef = useRef(null);
-  const { width, height } = useSize(elementRef);
+  const { width, height } = useElementSize(elementRef);
   const { setMobileSize } = useNavbar();
 
   useEffect(() => {

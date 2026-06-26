@@ -8,7 +8,7 @@ import { useTranslations } from "next-intl";
 import { ModeToggle } from "../ModeToggle";
 import LanguageSwitcher from "../LanguageSwitcher";
 import Container from "../container";
-import { useSize } from "react-haiku";
+import { useElementSize } from "@/lib/hooks/useElementSize";
 import { useNavbar } from "@/contexts/NavbarContext";
 import { useAuth } from "@/lib/hooks/useUser";
 
@@ -17,7 +17,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const elementRef = useRef(null);
-  const { width, height } = useSize(elementRef);
+  const { width, height } = useElementSize(elementRef);
 
   const { setSize } = useNavbar();
 
@@ -152,32 +152,50 @@ const Navbar = () => {
               ))}
 
               <div className="flex flex-col gap-2 pt-4">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="bg-red-500"
-                  asChild
-                >
-                  <Link
-                    href="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                {isAuth ? (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full justify-start"
+                    asChild
                   >
-                    {t("login")}
-                  </Link>
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link
-                    href="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t("login")}
-                  </Link>
-                </Button>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {t("dashboard")}
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="bg-red-500"
+                      asChild
+                    >
+                      <Link
+                        href="/contact"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {t("join")}
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="w-full justify-start"
+                      asChild
+                    >
+                      <Link
+                        href="/login"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {t("login")}
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

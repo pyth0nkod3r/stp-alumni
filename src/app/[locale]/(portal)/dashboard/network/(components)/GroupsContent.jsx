@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link as NavLink } from "@/i18n/routing";
 import { DoorOpen, EllipsisVertical, Link, LogOut,Plus } from "lucide-react";
 
@@ -148,6 +149,7 @@ const GroupItem = ({ group, variant, onToggleMembership }) => (
 // --- Main Component ---
 
 export function GroupsContent() {
+  const queryClient = useQueryClient();
   const {
     groups,
     isLoading,
@@ -194,7 +196,9 @@ export function GroupsContent() {
     } catch (error) {
       // Revert UI change on network error
       toggleGroupMembershipLocally(groupId, action !== "JOIN");
-      toast.error("An unexpected error occurred.");
+      
+      const serverMessage = error.response?.data?.message || error.response?.data?.error || "An unexpected error occurred.";
+      toast.error(serverMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -205,6 +209,8 @@ export function GroupsContent() {
     addGroupLocally(newGroup);
     // Reset pagination to show new group first
     setCurrentPage(1);
+    // Trigger instant background refetch to sync with server
+    queryClient.invalidateQueries({ queryKey: ['groups'] });
   };
 
   

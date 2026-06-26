@@ -18,7 +18,11 @@ export default function proxy(req) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return intlMiddleware(req);
+  const res = intlMiddleware(req);
+  if (res) {
+    res.headers.set('x-proxy-executed', 'true');
+  }
+  return res;
 }
 
 export const config = {
