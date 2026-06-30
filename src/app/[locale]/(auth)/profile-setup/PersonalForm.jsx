@@ -499,24 +499,103 @@ function PersonalForm({
       />
 
       {/* Goals */}
-      <Controller
-        name="goals"
-        control={personalForm.control}
-        render={({ field }) => (
-          <div>
-            <Label htmlFor="goals" className="text-gray-700 mb-2 block">
-              {t("goals")} <span className="text-red-500">*</span>
-            </Label>
-            <textarea
-              id="goals"
-              placeholder={t("goalsPlaceholder")}
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none"
-              rows={3}
-              {...field}
-            />
-          </div>
-        )}
-      />
+    <Controller
+  name="goals"
+  control={personalForm.control}
+  render={({ field }) => {
+    const [charCount, setCharCount] = useState(0);
+    const MAX_CHARS = 100;
+
+    const handleChange = (e) => {
+      const value = e.target.value;
+      if (value.length > MAX_CHARS) {
+        const truncated = value.slice(0, MAX_CHARS);
+        field.onChange(truncated);
+        setCharCount(MAX_CHARS);
+      } else {
+        field.onChange(value);
+        setCharCount(value.length);
+      }
+    };
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="goals" className="text-gray-700 mb-2 block">
+          {t("goals")} <span className="text-red-500">*</span>
+        </Label>
+        
+        <div>
+          <textarea
+            id="goals"
+            placeholder={t("goalsPlaceholder")}
+            className={cn(
+              "flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none",
+              charCount > MAX_CHARS * 0.8 && "border-amber-500",
+              charCount === MAX_CHARS && "border-red-500",
+            )}
+            rows={3}
+            value={field.value || ""}
+            onChange={handleChange}
+            onBlur={field.onBlur}
+            ref={field.ref}
+            maxLength={MAX_CHARS}
+          />
+
+          {/* Progress bar - now using margin instead of absolute */}
+          {field.value && field.value.length > 0 && (
+            <div className="mt-1.5 h-0.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full transition-all duration-300 rounded-full",
+                  charCount > MAX_CHARS * 0.8 &&
+                    charCount < MAX_CHARS &&
+                    "bg-amber-500",
+                  charCount === MAX_CHARS && "bg-red-500",
+                  charCount < MAX_CHARS * 0.8 && "bg-emerald-500",
+                )}
+                style={{ width: `${(charCount / MAX_CHARS) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Character counter - using flex layout */}
+        <div className="flex items-center justify-between">
+          {field.value && field.value.length > 0 && charCount > MAX_CHARS * 0.8 && (
+            <span
+              className={cn(
+                "text-xs",
+                charCount === MAX_CHARS
+                  ? "text-red-500 font-medium"
+                  : "text-amber-500",
+              )}
+            >
+              {charCount === MAX_CHARS
+                ? "⚠️ Character limit reached"
+                : `${MAX_CHARS - charCount} characters remaining`}
+            </span>
+          )}
+          
+          {field.value && field.value.length > 0 && (
+            <span
+              className={cn(
+                "text-xs font-medium ml-auto",
+                charCount > MAX_CHARS * 0.8 &&
+                  charCount < MAX_CHARS &&
+                  "text-amber-500",
+                charCount === MAX_CHARS && "text-red-500",
+                charCount < MAX_CHARS * 0.8 && "text-emerald-500",
+              )}
+            >
+              {charCount}/{MAX_CHARS}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }}
+/>
+
 
       <p className="text-xs text-gray-400 text-center pt-1">
         Profile details can be modified later in Settings.

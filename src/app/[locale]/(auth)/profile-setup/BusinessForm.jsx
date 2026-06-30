@@ -47,7 +47,14 @@ export const businessInfoSchema = z.object({
     .nullable(),
 });
 
-function BusinessForm({ updateUser, setStep, profileImage, personalForm, t,businessForm }) {
+function BusinessForm({
+  updateUser,
+  setStep,
+  profileImage,
+  personalForm,
+  t,
+  businessForm,
+}) {
   const router = useRouter();
   const [businessModelOpen, setBusinessModelOpen] = useState(false);
   const [companyStageOpen, setCompanyStageOpen] = useState(false);
@@ -57,8 +64,6 @@ function BusinessForm({ updateUser, setStep, profileImage, personalForm, t,busin
   const [needInput, setNeedInput] = useState("");
   const [offerOpen, setOfferOpen] = useState(false);
   const [needOpen, setNeedOpen] = useState(false);
-
-
 
   const filteredNeeds = NEED_TAGS.filter(
     (s) =>
@@ -180,28 +185,89 @@ function BusinessForm({ updateUser, setStep, profileImage, personalForm, t,busin
   return (
     <form className="space-y-4">
       {/* Company name */}
-      <Controller
-        name="companyName"
-        control={businessForm.control}
-        render={({ field }) => (
-          <div>
-            <Label htmlFor="companyName" className="text-gray-700 mb-2 block">
-              Company Name{" "}
-              <span className="text-gray-400 font-normal text-xs">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="companyName"
-              type="text"
-              placeholder="e.g. Acme Inc."
-              {...field}
-              disabled={setupMutation.isPending}
-            />
+     <Controller
+  name="companyName"
+  control={businessForm.control}
+  render={({ field }) => {
+    const [charCount, setCharCount] = useState(0);
+    const MAX_CHARS = 20;
+
+    const handleChange = (e) => {
+      const value = e.target.value;
+      if (value.length > MAX_CHARS) {
+        const truncated = value.slice(0, MAX_CHARS);
+        field.onChange(truncated);
+        setCharCount(MAX_CHARS);
+      } else {
+        field.onChange(value);
+        setCharCount(value.length);
+      }
+    };
+
+    return (
+      <div>
+        <Label htmlFor="companyName" className="text-gray-700 mb-2 block">
+          Company Name{" "}
+          <span className="text-gray-400 font-normal text-xs">
+            (optional • {MAX_CHARS} chars max)
+          </span>
+        </Label>
+        
+        <Input
+          id="companyName"
+          type="text"
+          placeholder="e.g. Acme Inc."
+          className={cn(
+            charCount > MAX_CHARS * 0.8 && "border-amber-500",
+            charCount === MAX_CHARS && "border-red-500",
+          )}
+          value={field.value || ""}
+          onChange={handleChange}
+          onBlur={field.onBlur}
+          ref={field.ref}
+          disabled={setupMutation.isPending}
+          maxLength={MAX_CHARS}
+        />
+        
+        {/* Compact counter with progress bar inline */}
+        {field.value && field.value.length > 0 && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full transition-all duration-300 rounded-full",
+                  charCount > MAX_CHARS * 0.8 && charCount < MAX_CHARS && "bg-amber-500",
+                  charCount === MAX_CHARS && "bg-red-500",
+                  charCount < MAX_CHARS * 0.8 && "bg-emerald-500",
+                )}
+                style={{ width: `${(charCount / MAX_CHARS) * 100}%` }}
+              />
+            </div>
+            <span className={cn(
+              "text-xs font-medium whitespace-nowrap",
+              charCount > MAX_CHARS * 0.8 && charCount < MAX_CHARS && "text-amber-500",
+              charCount === MAX_CHARS && "text-red-500",
+              charCount < MAX_CHARS * 0.8 && "text-emerald-500",
+            )}>
+              {charCount}/{MAX_CHARS}
+            </span>
           </div>
         )}
-      />
-
+        
+        {/* Warning when approaching limit */}
+        {field.value && 
+          field.value.length > 0 && 
+          charCount > MAX_CHARS * 0.8 && 
+          charCount < MAX_CHARS && (
+            <p className="text-xs text-amber-500 mt-1">
+              {MAX_CHARS - charCount} characters remaining
+            </p>
+          )
+        }
+      </div>
+    );
+  }}
+/>
       {/* Business Model */}
       <Controller
         name="businessModel"
@@ -323,24 +389,104 @@ function BusinessForm({ updateUser, setStep, profileImage, personalForm, t,busin
       <Controller
         name="elevatorPitch"
         control={businessForm.control}
-        render={({ field }) => (
-          <div>
-            <Label htmlFor="pitch" className="text-gray-700 mb-2 block">
-              Elevator Pitch{" "}
-              <span className="text-gray-400 font-normal text-xs">
-                (one sentence)
-              </span>
-            </Label>
-            <textarea
-              id="pitch"
-              placeholder="We help African SMEs access affordable trade finance through a mobile-first platform."
-              className="flex min-h-[72px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none"
-              rows={2}
-              {...field}
-              disabled={setupMutation.isPending}
-            />
-          </div>
-        )}
+        render={({ field }) => {
+          const [charCount, setCharCount] = useState(0);
+          const MAX_CHARS = 100;
+
+          const handleChange = (e) => {
+            const value = e.target.value;
+            if (value.length > MAX_CHARS) {
+              const truncated = value.slice(0, MAX_CHARS);
+              field.onChange(truncated);
+              setCharCount(MAX_CHARS);
+            } else {
+              field.onChange(value);
+              setCharCount(value.length);
+            }
+          };
+
+          return (
+            <div className="space-y-1.5">
+              <Label htmlFor="pitch" className="text-gray-700 block">
+                Elevator Pitch{" "}
+                <span className="text-gray-400 font-normal text-xs">
+                  ({MAX_CHARS} characters max)
+                </span>
+              </Label>
+
+              <div>
+                <textarea
+                  id="pitch"
+                  placeholder="We help African SMEs access affordable trade finance through a mobile-first platform."
+                  className={cn(
+                    "flex min-h-[72px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none",
+                    charCount > MAX_CHARS * 0.8 && "border-amber-500",
+                    charCount === MAX_CHARS && "border-red-500",
+                  )}
+                  rows={2}
+                  value={field.value || ""}
+                  onChange={handleChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  disabled={setupMutation.isPending}
+                  maxLength={MAX_CHARS}
+                />
+
+                {/* Progress bar */}
+                {field.value && field.value.length > 0 && (
+                  <div className="mt-1 h-0.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-300 rounded-full",
+                        charCount > MAX_CHARS * 0.8 &&
+                          charCount < MAX_CHARS &&
+                          "bg-amber-500",
+                        charCount === MAX_CHARS && "bg-red-500",
+                        charCount < MAX_CHARS * 0.8 && "bg-emerald-500",
+                      )}
+                      style={{ width: `${(charCount / MAX_CHARS) * 100}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Character counter and warning */}
+              <div className="flex items-center justify-between">
+                {field.value &&
+                  field.value.length > 0 &&
+                  charCount > MAX_CHARS * 0.8 && (
+                    <span
+                      className={cn(
+                        "text-xs",
+                        charCount === MAX_CHARS
+                          ? "text-red-500 font-medium"
+                          : "text-amber-500",
+                      )}
+                    >
+                      {charCount === MAX_CHARS
+                        ? "⚠️ Character limit reached"
+                        : `${MAX_CHARS - charCount} characters remaining`}
+                    </span>
+                  )}
+
+                {field.value && field.value.length > 0 && (
+                  <span
+                    className={cn(
+                      "text-xs font-medium ml-auto",
+                      charCount > MAX_CHARS * 0.8 &&
+                        charCount < MAX_CHARS &&
+                        "text-amber-500",
+                      charCount === MAX_CHARS && "text-red-500",
+                      charCount < MAX_CHARS * 0.8 && "text-emerald-500",
+                    )}
+                  >
+                    {charCount}/{MAX_CHARS}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        }}
       />
 
       {/* Offers */}

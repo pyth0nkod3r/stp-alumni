@@ -128,7 +128,7 @@ export default function ProfileSetupPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const updateUser = useAuthStore((state) => state.updateUser);
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
