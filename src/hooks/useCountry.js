@@ -28,7 +28,7 @@ const fetchCountries = async () => {
       'https://api.restcountries.com/countries/v5?region=Africa&limit=100',
       {
         headers: {
-          Authorization: "Bearer rc_live_ad276b39df9f4941a0fed4ed7736fa0c",
+          Authorization: `Bearer ${process.env.COUNTRY_API}`,
           "Content-Type": "application/json",
           "Accept": "application/json",
         },

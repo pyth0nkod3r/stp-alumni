@@ -13,16 +13,16 @@ export default function OnboardingGuard({ children }) {
   const isOnboarded = useAuthStore((state) => state.isOnboarded);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  // useEffect(() => {
-  //   if (isAuthenticated && !isOnboarded) {
-  //     router.replace("/profile-setup");
-  //   }
-  // }, [isAuthenticated, isOnboarded, router]);
+  useEffect(() => {
+    if (isAuthenticated && !isOnboarded) {
+      router.replace("/profile-setup");
+    }
+  }, [isAuthenticated, isOnboarded, router]);
 
-  // // While redirecting, don't flash dashboard content
-  // if (isAuthenticated && !isOnboarded) {
-  //   return null;
-  // }
+  // While redirecting, don't flash dashboard content
+  if (isAuthenticated && !isOnboarded) {
+    return null;
+  }
 
   return <>{children}</>;
 }
