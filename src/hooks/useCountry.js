@@ -23,12 +23,14 @@ const FALLBACK_COUNTRIES = [
 
 // Fetch function with your API key
 const fetchCountries = async () => {
+
+  console.log(process.env.NEXT_PUBLIC_COUNTRY_API,"process.env.COUNTRY_API")
   try {
     const response = await fetch(
       'https://api.restcountries.com/countries/v5?region=Africa&limit=100',
       {
         headers: {
-          Authorization: `Bearer ${process.env.COUNTRY_API}`,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_COUNTRY_API}`,
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
