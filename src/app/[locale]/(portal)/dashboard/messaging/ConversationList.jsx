@@ -7,6 +7,8 @@ import {
   Check,
   X,
   PenSquare,
+  ImageIcon,
+  FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,7 +72,7 @@ export function ConversationList({
   onNewMessage,
 }) {
   const [activeTab, setActiveTab] = useState("chats"); // "chats" | "invitations"
-   const { token } = useAuthStore();
+  const { token } = useAuthStore();
 
   const sortLabels = {
     recent: "Most Recent",
@@ -80,7 +82,7 @@ export function ConversationList({
 
   const pendingCount = invitations.length;
   // console.log(conversations.filter(ele=>(ele.online)), "conversations");
-  // console.table(conversations)
+  // console.log(conversations)
 
   return (
     <div className="flex flex-col h-full w-full bg-card">
@@ -186,7 +188,7 @@ export function ConversationList({
       <ModernScrollArea className="flex-1 w-full">
         {activeTab === "chats" ? (
           // /* ── Conversations List ── */
-          (isLoading || !token) ? (
+          isLoading || !token ? (
             <div className="divide-y divide-border">
               {Array.from({ length: 3 }).map((_, i) => (
                 <ConversationSkeleton key={i} />
@@ -250,9 +252,7 @@ export function ConversationList({
                       <span className="text-xs text-muted-foreground shrink-0 ml-2">
                         {
                           conversation?.lastMessage
-                            ? formatRelativeTime(
-                                conversation.lastMessageAt,
-                              )
+                            ? formatRelativeTime(conversation.lastMessageAt)
                             : formatRelativeTime(conversation.createdAt) // Fallback to chat creation time
                         }
                       </span>
@@ -267,13 +267,29 @@ export function ConversationList({
                       )}
                     >
                       {/* ✅ Fix: Extract content from lastMessage object */}
-                      {conversation.lastMessage
-                        ? typeof conversation.lastMessage === "object"
-                          ? conversation.lastMessage.content ||
+                      {conversation.lastMessage ? (
+                        typeof conversation.lastMessage === "object" ? (
+                          conversation.lastMessage.type === "image" ? (
+                            <div className="flex items-center gap-1.5">
+                              <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">Photo</span>
+                            </div>
+                          ) : conversation.lastMessage.type === "document" ? (
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">Document</span>
+                            </div>
+                          ) : (
+                            conversation.lastMessage.content ||
                             conversation.lastMessage.text ||
                             "No messages yet"
-                          : conversation.lastMessage
-                        : "No messages yet"}
+                          )
+                        ) : (
+                          conversation.lastMessage
+                        )
+                      ) : (
+                        "No messages yet"
+                      )}
                     </p>
                   </div>
 

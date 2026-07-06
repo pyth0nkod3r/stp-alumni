@@ -16,6 +16,9 @@ export default function MyPostsTab({ t }) {
   const handleLike = (postId) => likePost(postId);
   const handleCopyLink = () => toast.success("Link copied!");
 
+  console.log(myPosts,"myPosts");
+  
+
   if (isLoading) return <div className="space-y-6"><PostSkeleton /><PostSkeleton /></div>;
 
   if (error) {

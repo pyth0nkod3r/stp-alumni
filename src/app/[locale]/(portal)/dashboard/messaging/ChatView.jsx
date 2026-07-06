@@ -11,6 +11,8 @@ import {
   Settings,
   X,
   FileText,
+  Video,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,12 +34,27 @@ import useAuthStore from "@/lib/store/useAuthStore";
 import Image from "next/image";
 import { useAuth } from "@/lib/hooks/useUser";
 
+// Updated media types
 const IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
   "image/gif",
+];
+const VIDEO_TYPES = [
+  "video/mp4",
+  "video/mpeg",
+  "video/quicktime",
+  "video/webm",
+  "video/ogg",
+];
+const AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/ogg",
+  "audio/webm",
 ];
 const DOC_TYPES = [
   "application/pdf",
@@ -46,7 +63,10 @@ const DOC_TYPES = [
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
 const MAX_DOC_SIZE = 20 * 1024 * 1024; // 20MB
 
 export function ChatView({
@@ -67,20 +87,20 @@ export function ChatView({
   const [filePreview, setFilePreview] = useState(null);
   const [fileType, setFileType] = useState(null);
 
-  // console.log(messages, "messages")
-  
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  const audioInputRef = useRef(null);
   const { token } = useAuthStore();
-  const { data } = useAuth(); // ✅ Add this
-const currentUserId = data?.data?.userId || data?.data?.id;
+  const { data } = useAuth();
+  const currentUserId = data?.data?.userId || data?.data?.id;
   const router = useRouter();
   const typingTimeoutRef = useRef(null);
 
   // Clear file preview
   const clearFilePreview = () => {
-    if (filePreview && filePreview.startsWith('blob:')) {
+    if (filePreview && filePreview.startsWith("blob:")) {
       URL.revokeObjectURL(filePreview);
     }
     setSelectedFile(null);
@@ -91,11 +111,11 @@ const currentUserId = data?.data?.userId || data?.data?.id;
   const handleTyping = (e) => {
     const value = e.target.value;
     setNewMessage(value);
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       if (value) {
         onTyping?.();
@@ -104,15 +124,11 @@ const currentUserId = data?.data?.userId || data?.data?.id;
   };
 
   const otherTypingUsers = Object.entries(typingUsers || {})
-  .filter(([userId]) => userId !== currentUserId) // ✅ Filter out yourself
-  .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
-
-
+    .filter(([userId]) => userId !== currentUserId)
+    .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
 
   const hasTyping = Object.keys(otherTypingUsers).length > 0;
   const messagesEndRef = useRef(null);
-
-  // console.log(typingUsers,"typingUsers")
 
   useEffect(() => {
     if (!isLoading && messagesEndRef.current) {
@@ -135,8 +151,6 @@ const currentUserId = data?.data?.userId || data?.data?.id;
 
   const handleSend = () => {
     if (selectedFile) {
-      // console.log("Sending file:", selectedFile);
-      // Send file with optional caption
       onSendMediaFile?.(selectedFile, newMessage);
       clearFilePreview();
       setNewMessage("");
@@ -144,7 +158,7 @@ const currentUserId = data?.data?.userId || data?.data?.id;
       onSendMessage(newMessage);
       setNewMessage("");
     }
-    
+
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -159,27 +173,49 @@ const currentUserId = data?.data?.userId || data?.data?.id;
 
   const handleFileSelection = (file) => {
     if (!file) return;
-    
+
     // Check file type
     const isImage = IMAGE_TYPES.includes(file.type);
-    const isDoc = [...IMAGE_TYPES, ...DOC_TYPES].includes(file.type);
-    
-    if (!isImage && !isDoc) {
+    const isVideo = VIDEO_TYPES.includes(file.type);
+    const isAudio = AUDIO_TYPES.includes(file.type);
+    const isDoc = [...IMAGE_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, ...DOC_TYPES].includes(file.type);
+
+    if (!isImage && !isVideo && !isAudio && !isDoc) {
       toast.error("Unsupported file type");
       return;
     }
-    
-    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_DOC_SIZE;
+
+    let maxSize;
+    let type;
+
+    if (isImage) {
+      maxSize = MAX_IMAGE_SIZE;
+      type = "image";
+    } else if (isVideo) {
+      maxSize = MAX_VIDEO_SIZE;
+      type = "video";
+    } else if (isAudio) {
+      maxSize = MAX_AUDIO_SIZE;
+      type = "audio";
+    } else {
+      maxSize = MAX_DOC_SIZE;
+      type = "document";
+    }
+
     if (file.size > maxSize) {
-      toast.error(`File must be under ${isImage ? "5MB" : "20MB"}`);
+      const sizeInMB = maxSize / (1024 * 1024);
+      toast.error(`File must be under ${sizeInMB}MB`);
       return;
     }
-    
+
     setSelectedFile(file);
-    setFileType(isImage ? "image" : "document");
-    
-    // Create preview URL for images
+    setFileType(type);
+
+    // Create preview URL for images and videos
     if (isImage) {
+      const previewUrl = URL.createObjectURL(file);
+      setFilePreview(previewUrl);
+    } else if (isVideo) {
       const previewUrl = URL.createObjectURL(file);
       setFilePreview(previewUrl);
     } else {
@@ -188,6 +224,18 @@ const currentUserId = data?.data?.userId || data?.data?.id;
   };
 
   const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    handleFileSelection(file);
+    e.target.value = "";
+  };
+
+  const handleVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    handleFileSelection(file);
+    e.target.value = "";
+  };
+
+  const handleAudioSelect = (e) => {
     const file = e.target.files?.[0];
     handleFileSelection(file);
     e.target.value = "";
@@ -211,12 +259,45 @@ const currentUserId = data?.data?.userId || data?.data?.id;
 
   const messageGroups = groupMessagesByDate(messages);
 
+  // Helper to get file icon based on type
+  const getFileIcon = (type) => {
+    switch (type) {
+      case "image":
+        return <ImageIcon className="h-8 w-8 text-stp-blue-light" />;
+      case "video":
+        return <Video className="h-8 w-8 text-stp-blue-light" />;
+      case "audio":
+        return <Mic className="h-8 w-8 text-stp-blue-light" />;
+      default:
+        return <FileText className="h-8 w-8 text-stp-blue-light" />;
+    }
+  };
+
+  // Helper to get file type label
+  const getFileTypeLabel = (type) => {
+    switch (type) {
+      case "image":
+        return "Image";
+      case "video":
+        return "Video";
+      case "audio":
+        return "Audio";
+      default:
+        return "Document";
+    }
+  };
+
   return (
     <div className="flex flex-col justify-between bg-background overflow-hidden h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-card">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={onBack}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Avatar className="h-10 w-10">
@@ -224,7 +305,9 @@ const currentUserId = data?.data?.userId || data?.data?.id;
             <AvatarFallback>{getInitials(conversation.name)}</AvatarFallback>
           </Avatar>
           <div>
-            <h2 className="font-semibold text-foreground">{conversation.name}</h2>
+            <h2 className="font-semibold text-foreground">
+              {conversation.name}
+            </h2>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               {conversation.online ? (
                 <>
@@ -249,7 +332,11 @@ const currentUserId = data?.data?.userId || data?.data?.id;
           <DropdownMenuContent align="end">
             {conversation.type !== "PUBLIC_GROUP" && (
               <>
-                <DropdownMenuItem onClick={() => router.push(`/dashboard/profile/${conversation.userId}`)}>
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.push(`/dashboard/profile/${conversation.userId}`)
+                  }
+                >
                   View profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -262,7 +349,9 @@ const currentUserId = data?.data?.userId || data?.data?.id;
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Delete chat</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">
+              Delete chat
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -277,29 +366,33 @@ const currentUserId = data?.data?.userId || data?.data?.id;
           )}
 
           {!isLoading &&
-            Array.from(messageGroups.entries()).map(([dateKey, dateMessages]) => (
-              <div key={dateKey}>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-muted px-3 py-1 rounded-full">
-                    <span className="text-xs text-muted-foreground">
-                      {formatMessageDate(new Date(dateKey))}
-                    </span>
+            Array.from(messageGroups.entries()).map(
+              ([dateKey, dateMessages]) => (
+                <div key={dateKey}>
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="bg-muted px-3 py-1 rounded-full">
+                      <span className="text-xs text-muted-foreground">
+                        {formatMessageDate(new Date(dateKey))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {dateMessages.map((message) => (
+                      <MessageBubble
+                        key={message.id}
+                        message={message}
+                        senderAvatar={
+                          message.senderAvatar || conversation.avatar
+                        }
+                        senderName={message.senderName || conversation.name}
+                        onRetry={() => onRetryMessage(message.id)}
+                        onDelete={() => onDeleteMessage(message.id)}
+                      />
+                    ))}
                   </div>
                 </div>
-                <div className="space-y-4">
-                  {dateMessages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      senderAvatar={message.senderAvatar || conversation.avatar}
-                      senderName={message.senderName || conversation.name}
-                      onRetry={() => onRetryMessage(message.id)}
-                      onDelete={() => onDeleteMessage(message.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+              ),
+            )}
 
           {!isLoading && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
@@ -321,9 +414,23 @@ const currentUserId = data?.data?.userId || data?.data?.id;
       />
       <input
         type="file"
+        ref={videoInputRef}
+        onChange={handleVideoSelect}
+        accept="video/mp4,video/mpeg,video/quicktime,video/webm,video/ogg"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={audioInputRef}
+        onChange={handleAudioSelect}
+        accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm"
+        className="hidden"
+      />
+      <input
+        type="file"
         ref={fileInputRef}
         onChange={handleFileSelect}
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,.mp4,.mp3,.wav,.webm,.ogg"
         className="hidden"
       />
 
@@ -339,7 +446,7 @@ const currentUserId = data?.data?.userId || data?.data?.id;
             >
               <X className="h-3 w-3" />
             </Button>
-            
+
             {fileType === "image" ? (
               <div className="relative rounded-lg overflow-hidden">
                 <Image
@@ -351,9 +458,32 @@ const currentUserId = data?.data?.userId || data?.data?.id;
                   style={{ width: "auto", height: "auto" }}
                 />
               </div>
+            ) : fileType === "video" ? (
+              <div className="relative rounded-lg overflow-hidden">
+                <video
+                  src={filePreview}
+                  controls
+                  className="max-h-32 rounded-lg"
+                  style={{ width: "auto", height: "auto" }}
+                />
+              </div>
+            ) : fileType === "audio" ? (
+              <div className="flex items-center gap-3 p-2">
+                <Mic className="h-8 w-8 text-stp-blue-light" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{filePreview}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <audio controls className="max-w-[150px]">
+                  <source src={filePreview} type={selectedFile.type} />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
             ) : (
               <div className="flex items-center gap-3 p-2">
-                <FileText className="h-8 w-8 text-stp-blue-light" />
+                {getFileIcon(fileType)}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{filePreview}</p>
                   <p className="text-xs text-muted-foreground">
@@ -362,7 +492,7 @@ const currentUserId = data?.data?.userId || data?.data?.id;
                 </div>
               </div>
             )}
-            
+
             {newMessage && (
               <p className="text-xs text-muted-foreground mt-2 px-1 pb-1">
                 {newMessage}
@@ -374,7 +504,6 @@ const currentUserId = data?.data?.userId || data?.data?.id;
 
       {/* Message Input */}
       <div className="p-4 border-t border-border bg-card">
-        {/* only show typing indicator for the user who receives the message not the one doing the typing */}
         {hasTyping && (
           <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
             <div className="flex gap-1">
@@ -383,7 +512,10 @@ const currentUserId = data?.data?.userId || data?.data?.id;
               <span className="animate-bounce delay-200">.</span>
             </div>
             <span>
-              {Object.values(otherTypingUsers).map((t) => t.name).join(", ")} typing...
+              {Object.values(otherTypingUsers)
+                .map((t) => t.name)
+                .join(", ")}{" "}
+              typing...
             </span>
           </div>
         )}
@@ -391,7 +523,9 @@ const currentUserId = data?.data?.userId || data?.data?.id;
           <div className="flex items-end gap-2 bg-muted/50 rounded-2xl px-4 py-2">
             <Textarea
               ref={textareaRef}
-              placeholder={selectedFile ? "Add a caption..." : "Type your message..."}
+              placeholder={
+                selectedFile ? "Add a caption..." : "Type your message..."
+              }
               value={newMessage}
               onKeyDown={handleKeyDown}
               onChange={handleTyping}
@@ -399,13 +533,6 @@ const currentUserId = data?.data?.userId || data?.data?.id;
               rows={1}
             />
             <div className="flex items-center gap-1 flex-shrink-0 pb-1">
-              {/* <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              >
-                <Smile className="h-5 w-5" />
-              </Button> */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -423,10 +550,26 @@ const currentUserId = data?.data?.userId || data?.data?.id;
                 <ImageIcon className="h-5 w-5" />
               </Button>
               <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
+                onClick={() => videoInputRef.current?.click()}
+              >
+                <Video className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:flex"
+                onClick={() => audioInputRef.current?.click()}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              <Button
                 size="icon"
                 className={cn(
                   "h-8 w-8 rounded-full transition-all",
-                  (newMessage.trim() || selectedFile)
+                  newMessage.trim() || selectedFile
                     ? "bg-stp-blue-light hover:bg-stp-blue-light/90"
                     : "bg-stp-blue-light/50 cursor-not-allowed",
                 )}

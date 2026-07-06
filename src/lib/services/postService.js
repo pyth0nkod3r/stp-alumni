@@ -24,7 +24,7 @@ getPosts:async ({ page = 1, limit = 10 } = {}) => {
    * Fetch current user's posts
    */
   getMyPosts: async () => {
-    const response = await api.get('/posts/mine');
+    const response = await api.get('/users/my-posts');
     return response.data;
   },
 

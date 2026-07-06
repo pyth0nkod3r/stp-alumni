@@ -8,6 +8,7 @@ import {
   Trash2,
   FileText,
   Download,
+  ZoomIn,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatMessageTime } from "@/lib/helper";
 import Image from "next/image";
+import ImageLightbox from "./ImageLightbox";
 
 function MessageStatus({ status }) {
   switch (status) {
@@ -49,40 +51,57 @@ function MessageStatus({ status }) {
 
 function MediaContent({ message }) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
-  // console.log(message,"isImage")
   if (!message.mediaUrl) return null;
 
   const isImage =
     message.mediaType === "image" ||
     /\.(jpg|jpeg|png|gif|webp)$/i.test(message.mediaUrl);
 
-
   if (isImage) {
     return (
-      // No margin, fills bubble edge to edge
-      <div className="relative w-[240px] h-[180px]">
-        {!imageLoaded && (
-          <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center">
-            <div className="h-8 w-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-          </div>
-        )}
-        <Image
-          src={message.mediaUrl}
-          alt="Shared image"
-          fill
-          className={cn(
-            "object-cover transition-opacity duration-300",
-            imageLoaded ? "opacity-100" : "opacity-0",
+      <>
+        <div 
+          className="relative w-[240px] h-[180px] cursor-pointer group"
+          onClick={() => setLightboxOpen(true)}
+        >
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            </div>
           )}
-          unoptimized={message.mediaUrl.startsWith("blob:")}
-          onLoad={() => setImageLoaded(true)}
+          <Image
+            src={message.mediaUrl}
+            alt="Shared image"
+            fill
+            className={cn(
+              "object-cover transition-opacity duration-300",
+              imageLoaded ? "opacity-100" : "opacity-0",
+            )}
+            unoptimized={message.mediaUrl.startsWith("blob:")}
+            onLoad={() => setImageLoaded(true)}
+          />
+          {/* ADD - Zoom icon overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-2">
+              <ZoomIn className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+        
+        {/* ADD - Lightbox */}
+        <ImageLightbox
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          src={message.mediaUrl}
+          alt={message.content || "Image"}
         />
-      </div>
+      </>
     );
   }
 
-  // Document — keep padding here since it's inside the padded bubble
+  // Document section remains the same...
   const fileName = message.mediaUrl.split("/").pop() || "Document";
   return (
     <a

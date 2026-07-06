@@ -56,7 +56,7 @@ function CommentItem({ comment }) {
           className="h-full w-full object-cover"
         />
       </div>
-      
+
       {/* Comment bubble */}
       <div className="flex-1 min-w-0">
         <div className="bg-gray-50 hover:bg-gray-100/80 rounded-2xl rounded-tl-sm px-4 py-3 transition-colors duration-200 border border-gray-100/80">
@@ -70,7 +70,9 @@ function CommentItem({ comment }) {
         </div>
         <p className="text-xs text-gray-400 mt-1.5 pl-2">
           {comment.createdAt
-            ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })
+            ? formatDistanceToNow(new Date(comment.createdAt), {
+                addSuffix: true,
+              })
             : "Just now"}
         </p>
       </div>
@@ -163,7 +165,7 @@ function CommentModal({ open, onClose, post }) {
   const handleCommentChange = (e) => {
     const value = e.target.value;
     const words = value.trim().split(/\s+/);
-    
+
     if (words.length > MAX_WORDS && words.length > wordCount) {
       const trimmedValue = value.split(/\s+/).slice(0, MAX_WORDS).join(" ");
       setCommentText(trimmedValue);
@@ -233,7 +235,9 @@ function CommentModal({ open, onClose, post }) {
                   <MessageSquare className="h-5 w-5 text-red-400" />
                 </div>
                 <p className="text-sm text-red-500">Failed to load comments</p>
-                <p className="text-xs text-gray-400 mt-1">Please try again later</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Please try again later
+                </p>
               </div>
             )}
 
@@ -242,7 +246,9 @@ function CommentModal({ open, onClose, post }) {
                 <div className="h-16 w-16 rounded-full bg-gray-50 mx-auto flex items-center justify-center mb-4">
                   <MessageSquare className="h-8 w-8 text-gray-300" />
                 </div>
-                <p className="text-sm font-medium text-gray-500">No comments yet</p>
+                <p className="text-sm font-medium text-gray-500">
+                  No comments yet
+                </p>
                 <p className="text-xs text-gray-400 mt-1">
                   Be the first to start the conversation!
                 </p>
@@ -274,7 +280,7 @@ function CommentModal({ open, onClose, post }) {
                 className="h-full w-full object-cover"
               />
             </div>
-            
+
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
@@ -289,25 +295,27 @@ function CommentModal({ open, onClose, post }) {
                   isFocused
                     ? "border-[#233389] ring-4 ring-[#233389]/10"
                     : isOverLimit
-                    ? "border-red-400"
-                    : "border-gray-200 hover:border-gray-300",
-                  isOverLimit && "focus-visible:ring-red-400/10"
+                      ? "border-red-400"
+                      : "border-gray-200 hover:border-gray-300",
+                  isOverLimit && "focus-visible:ring-red-400/10",
                 )}
                 rows={1}
                 style={{
                   minHeight: "44px",
                 }}
               />
-              
+
               {/* Word counter indicator */}
               {commentText.trim() && wordCount > 0 && (
                 <div className="absolute -top-6 right-1 flex items-center gap-2">
-                  <span className={`text-xs font-medium ${getWordCountColor()}`}>
+                  <span
+                    className={`text-xs font-medium ${getWordCountColor()}`}
+                  >
                     {wordCount}/{MAX_WORDS}
                   </span>
                 </div>
               )}
-              
+
               {/* Progress bar */}
               {commentText.trim() && wordCount > 0 && (
                 <div className="absolute -bottom-1.5 left-3 right-3 h-0.5 bg-gray-100 rounded-full overflow-hidden">
@@ -325,7 +333,7 @@ function CommentModal({ open, onClose, post }) {
                   "absolute right-2.5 bottom-2.5 p-1.5 rounded-lg transition-all duration-200",
                   canSubmit
                     ? "text-[#233389] hover:bg-[#233389]/10 hover:scale-110 active:scale-95"
-                    : "text-gray-300 cursor-not-allowed"
+                    : "text-gray-300 cursor-not-allowed",
                 )}
               >
                 {isSubmitting ? (
@@ -340,9 +348,7 @@ function CommentModal({ open, onClose, post }) {
           {/* Footer info */}
           <div className="flex items-center justify-between mt-2 pl-12">
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-400">
-                ⌘ + Enter to send
-              </span>
+              <span className="text-xs text-gray-400">⌘ + Enter to send</span>
               {commentText.trim() && !isOverLimit && wordCount > 0 && (
                 <>
                   <span className="text-xs text-gray-300">•</span>
@@ -352,7 +358,7 @@ function CommentModal({ open, onClose, post }) {
                 </>
               )}
             </div>
-            
+
             {/* Warning message */}
             {commentText.trim() && showWarning && (
               <span className={`text-xs ${getWordCountColor()}`}>
@@ -365,7 +371,6 @@ function CommentModal({ open, onClose, post }) {
     </Dialog>
   );
 }
-
 
 export default function PostCard({
   post,
@@ -451,14 +456,14 @@ export default function PostCard({
   };
 
   const goToPreviousImage = () => {
-    setSelectedImageIndex((prev) => 
-      prev === 0 ? post.images.length - 1 : prev - 1
+    setSelectedImageIndex((prev) =>
+      prev === 0 ? post.images.length - 1 : prev - 1,
     );
   };
 
   const goToNextImage = () => {
-    setSelectedImageIndex((prev) => 
-      prev === post.images.length - 1 ? 0 : prev + 1
+    setSelectedImageIndex((prev) =>
+      prev === post.images.length - 1 ? 0 : prev + 1,
     );
   };
 
@@ -466,7 +471,7 @@ export default function PostCard({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!fullImageOpen) return;
-      
+
       if (e.key === "Escape") {
         closeFullImage();
       } else if (e.key === "ArrowLeft") {
@@ -491,7 +496,12 @@ export default function PostCard({
           <div className="flex gap-3">
             <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden shrink-0">
               <Image
-                src={post.profileImagePath || "/assets/Profile Image.jpg"}
+                src={
+                  (post.profileImagePath.startsWith("http")
+                    ? post.profileImagePath
+                    : `${process.env.NEXT_PUBLIC_API_URL}/${post.profileImagePath}`) ||
+                  "/assets/Profile Image.jpg"
+                }
                 alt={post.author?.firstName || "User"}
                 width={48}
                 height={48}
@@ -630,9 +640,7 @@ export default function PostCard({
                   className={`relative bg-gray-200 rounded-lg overflow-hidden cursor-pointer group ${
                     isFirstOfThree ? "row-span-2" : "aspect-video"
                   }`}
-                  style={
-                    isFirstOfThree ? { gridRow: "1 / 3" } : {}
-                  }
+                  style={isFirstOfThree ? { gridRow: "1 / 3" } : {}}
                   onClick={() => openFullImage(index)}
                 >
                   <Image
@@ -641,19 +649,29 @@ export default function PostCard({
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  
+
                   {/* Overlay with zoom icon */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/90 rounded-full p-2">
-                      <svg className="h-5 w-5 text-[#233389]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      <svg
+                        className="h-5 w-5 text-[#233389]"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
                       </svg>
                     </div>
                   </div>
 
                   {/* Show +N overlay for last image if there are more than 3 */}
                   {index === 2 && images.length > 3 && (
-                    <div 
+                    <div
                       className="absolute inset-0 bg-black/50 flex items-center justify-center"
                       onClick={() => openFullImage(2)}
                     >
@@ -734,7 +752,7 @@ export default function PostCard({
 
       {/* ── Full Image Modal ── */}
       {fullImageOpen && hasImages && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={closeFullImage}
         >
@@ -752,7 +770,7 @@ export default function PostCard({
           </div>
 
           {/* Main image */}
-          <div 
+          <div
             className="relative max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >

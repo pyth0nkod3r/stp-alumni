@@ -43,14 +43,20 @@ export function useMessaging() {
       : conv.name,
     avatar: conv.avatarPath,
     description: conv.description,
-    lastMessage: conv.lastMessage?.content || null,
+    lastMessage: conv.lastMessage ? {
+      content: conv.lastMessage.content || null,
+      text: conv.lastMessage.text || null,
+      type: conv.lastMessage.type || "text",
+      mediaUrl: conv.lastMessage.mediaUrl || null,
+      senderId: conv.lastMessage.senderId,
+      createdAt: conv.lastMessage.createdAt,
+    } : null,
     lastMessageAt: conv.lastMessage?.createdAt || conv.updatedAt,
     unreadCount: conv.unreadCount,
     memberCount: conv.memberCount,
     userId: conv.otherUser?.userId,
     online: presenceMapRef.current[conv.otherUser?.userId] === "online",
   });
-
   // Queries
   const { data: conversationsData, isLoading: isLoadingConversations } = useQuery({
     queryKey: ["conversations", searchQuery, sortBy],
@@ -344,7 +350,7 @@ export function useMessaging() {
   const handleReadReceipt = useCallback((data) => {
 
     if (data.conversationId === selectedConversation?.conversationId) {
-      const queryKey = messagingKeys.messages(data.conversationId); 
+      const queryKey = messagingKeys.messages(data.conversationId);
       queryClient.setQueryData(queryKey, (old) => {
         return {
           ...old,
@@ -385,49 +391,50 @@ export function useMessaging() {
   });
 
   // Data transformations
-  // const conversations = (conversationsData?.data || []).map(mapConversation);
-  const conversations = (conversationsData?.data || []).map((conv) => {
-    const cached = queryClient.getQueryData(["conversations", searchQuery, sortBy]);
-    const cachedConv = cached?.data?.find(c => c.conversationId === conv.conversationId);
+  const conversations = (conversationsData?.data || []).map(mapConversation);
+  // const conversations = (conversationsData?.data || []).map((conv) => {
+  //   const cached = queryClient.getQueryData(["conversations", searchQuery, sortBy]);
+  //   const cachedConv = cached?.data?.find(c => c.conversationId === conv.conversationId);
 
-    return {
-      ...mapConversation(conv),
-      online: cachedConv?.online ?? false, // preserve presence from cache
-    };
-  });
+  //   return {
+  //     ...mapConversation(conv),
+  //     online: cachedConv?.online ?? false, // preserve presence from cache
+  //   };
+  // });
+
   const invitations = invitationsData?.data || [];
 
   // console.log("messagesData", messagesData?.data?.length);
   // console.log("cache", queryClient.getQueryData(["messages", selectedConversation?.conversationId])?.data?.length);
   // Fix: Extract data array from messagesData
- const currentMessages = (messagesData?.data || []).map(msg => {
-  const mediaUrl = msg.mediaUrl || msg.mediaPath;
-  const mediaType = msg.mediaType || msg.type;
-  
-  // Debug: log if media exists but URL is missing
-  if (mediaType === "image" && !mediaUrl) {
-    console.warn("⚠️ Image message has no mediaUrl:", { 
-      id: msg.messageId || msg.id, 
-      mediaPath: msg.mediaPath,
-      mediaUrl: msg.mediaUrl 
-    });
-  }
-  
-  return {
-    id: msg.messageId || msg.id,
-    messageId: msg.messageId || msg.id,
-    content: msg.content,
-    type: msg.type,
-    createdAt: msg.createdAt,
-    senderId: msg.senderId,
-    senderName: msg.senderName,
-    senderAvatar: msg.senderAvatar,
-    isOwn: msg.senderId === currentUserId,
-    status: msg.status || "delivered",
-    mediaUrl,   // ✅ Use the computed value
-    mediaType,  // ✅ Use the computed value
-  };
-});
+  const currentMessages = (messagesData?.data || []).map(msg => {
+    const mediaUrl = msg.mediaUrl || msg.mediaPath;
+    const mediaType = msg.mediaType || msg.type;
+
+    // Debug: log if media exists but URL is missing
+    if (mediaType === "image" && !mediaUrl) {
+      console.warn("⚠️ Image message has no mediaUrl:", {
+        id: msg.messageId || msg.id,
+        mediaPath: msg.mediaPath,
+        mediaUrl: msg.mediaUrl
+      });
+    }
+
+    return {
+      id: msg.messageId || msg.id,
+      messageId: msg.messageId || msg.id,
+      content: msg.content,
+      type: msg.type,
+      createdAt: msg.createdAt,
+      senderId: msg.senderId,
+      senderName: msg.senderName,
+      senderAvatar: msg.senderAvatar,
+      isOwn: msg.senderId === currentUserId,
+      status: msg.status || "delivered",
+      mediaUrl,   // ✅ Use the computed value
+      mediaType,  // ✅ Use the computed value
+    };
+  });
 
   // Actions
   const selectConversation = useCallback((conversationId) => {
@@ -497,38 +504,38 @@ export function useMessaging() {
 
 
   const retryMessage = useCallback(
-  (messageId) => {
+    (messageId) => {
 
-    // console.log("Retrying message", messageId, "in conversation", selectedConversationId);
-    if (!selectedConversationId) return;
+      // console.log("Retrying message", messageId, "in conversation", selectedConversationId);
+      if (!selectedConversationId) return;
 
-    const queryKey = messagingKeys.messages(selectedConversationId);
-    const cached = queryClient.getQueryData(queryKey);
-    const failedMsg = cached?.data?.find((m) => m.id === messageId || m.messageId === messageId);
+      const queryKey = messagingKeys.messages(selectedConversationId);
+      const cached = queryClient.getQueryData(queryKey);
+      const failedMsg = cached?.data?.find((m) => m.id === messageId || m.messageId === messageId);
 
-    // console.log(failedMsg)
-    if (!failedMsg?.content || failedMsg?.mediaType.length !== 0) return;
-    // Mark as sending again in cache
-    console.log("✅")
-    queryClient.setQueryData(queryKey, (old) => ({
-      ...old,
-      data: (old?.data ?? []).map((m) =>
-        m.id === messageId ? { ...m, status: "sending" } : m
-      ),
-    }));
+      // console.log(failedMsg)
+      if (!failedMsg?.content || failedMsg?.mediaType.length !== 0) return;
+      // Mark as sending again in cache
+      console.log("✅")
+      queryClient.setQueryData(queryKey, (old) => ({
+        ...old,
+        data: (old?.data ?? []).map((m) =>
+          m.id === messageId ? { ...m, status: "sending" } : m
+        ),
+      }));
 
-    // Re-register in pendingMessagesRef so handleNewMessage can dedup it
-    pendingMessagesRef.current[messageId] = {
-      content: failedMsg.content,
-      conversationId: selectedConversationId,
-      createdAt: failedMsg.createdAt,
-    };
+      // Re-register in pendingMessagesRef so handleNewMessage can dedup it
+      pendingMessagesRef.current[messageId] = {
+        content: failedMsg.content,
+        conversationId: selectedConversationId,
+        createdAt: failedMsg.createdAt,
+      };
 
-    // WS only — same as sendMessage
-    wsSendMessage(selectedConversationId, failedMsg.content);
-  },
-  [selectedConversationId, queryClient, wsSendMessage],
-);
+      // WS only — same as sendMessage
+      wsSendMessage(selectedConversationId, failedMsg.content);
+    },
+    [selectedConversationId, queryClient, wsSendMessage],
+  );
 
   const acceptInvitation = useCallback(
     (invitationId) => {

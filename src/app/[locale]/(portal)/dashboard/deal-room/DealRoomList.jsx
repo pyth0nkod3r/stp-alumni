@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/helper";
+import { ModernScrollArea } from "@/components/shared/ScrollArea";
 
 function RoomSkeleton() {
   return (
@@ -100,7 +101,7 @@ export function DealRoomList({
       </div>
 
       {/* Rooms */}
-      <ScrollArea className="flex-1 ">
+      <ModernScrollArea className="flex-1 ">
         {isLoading ? (
           <div className="divide-y divide-border">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -192,7 +193,7 @@ export function DealRoomList({
             )})}
           </div>
         )}
-      </ScrollArea>
+      </ModernScrollArea>
 
       {/* Create a Room Button */}
       <div className="p-3 border-t border-border">
