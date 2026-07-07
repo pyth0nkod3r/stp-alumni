@@ -9,6 +9,7 @@ import {
   X,
   FileText,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -328,8 +329,9 @@ export default function ResourcesPage() {
                   <Button
                     type="submit"
                     className="bg-stp-blue-light hover:bg-stp-blue-light/90"
+                    disabled={uploadMutation.isPending}
                   >
-                    {t("uploadButton")}
+                    {uploadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("uploadButton")}
                   </Button>
                 </div>
               </form>
@@ -414,7 +416,7 @@ export default function ResourcesPage() {
                 <Separator />
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -430,7 +432,7 @@ export default function ResourcesPage() {
                   >
                     {t("apply")}
                   </Button>
-                </div>
+                </div> */}
               </div>
             </PopoverContent>
           </Popover>

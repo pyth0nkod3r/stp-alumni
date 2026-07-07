@@ -9,6 +9,7 @@ import {
   PenSquare,
   ImageIcon,
   FileText,
+  VideoIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -274,7 +275,14 @@ export function ConversationList({
                               <ImageIcon className="h-3.5 w-3.5 shrink-0" />
                               <span className="truncate">Photo</span>
                             </div>
-                          ) : conversation.lastMessage.type === "document" ? (
+                          ) :
+                            conversation.lastMessage.type === "video" ? (
+                            <div className="flex items-center gap-1.5">
+                              <VideoIcon className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">Video</span>
+                            </div>
+                          ) :
+                          conversation.lastMessage.type === "document" ? (
                             <div className="flex items-center gap-1.5">
                               <FileText className="h-3.5 w-3.5 shrink-0" />
                               <span className="truncate">Document</span>
