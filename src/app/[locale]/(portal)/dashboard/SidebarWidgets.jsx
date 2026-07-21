@@ -189,13 +189,32 @@ export default SidebarWidgets;
 function InvitationItem({ invitation, index }) {
   const queryClient = useQueryClient();
 
+  // Optimistically remove this invitation from cache so it disappears
+  // immediately and can't be clicked again (which caused a 404).
+  const removeFromCache = (connectionId) => {
+    const removeItem = (old) => {
+      if (!old) return old;
+      if (Array.isArray(old?.data)) {
+        return { ...old, data: old.data.filter((i) => i.connectionId !== connectionId) };
+      }
+      if (Array.isArray(old)) {
+        return old.filter((i) => i.connectionId !== connectionId);
+      }
+      return old;
+    };
+    queryClient.setQueryData(["invitations"], removeItem);
+  };
+
   const { mutate, isPending } = useMutation({
     mutationFn: (data) =>
       networkService.acceptConnection(invitation.connectionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      removeFromCache(invitation.connectionId);
       queryClient.invalidateQueries({ queryKey: ["network"] });
       toast.success("Connection request accepted");
+    },
+    onError: () => {
+      toast.error("Failed to accept connection request");
     },
   });
 
@@ -203,8 +222,11 @@ function InvitationItem({ invitation, index }) {
     mutationFn: (data) =>
       networkService.ignoreConnection(invitation.connectionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      removeFromCache(invitation.connectionId);
       toast.info("Connection request ignored!");
+    },
+    onError: () => {
+      toast.error("Failed to ignore connection request");
     },
   });
 

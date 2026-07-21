@@ -36,6 +36,13 @@ const Page = () => {
     queryFn: networkService.getIncomingRequests,
   });
 
+  // Fetch accepted connections via the dedicated endpoint (same as dashboard sidebar)
+  const { data: connectionsPayload, isLoading: isConnectionsLoading } = useQuery({
+    queryKey: ["network", "connections"],
+    queryFn: () => networkService.getConnections(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     setLoading(isNetworkLoading);
     if (networkError) setError(networkError);
@@ -52,12 +59,12 @@ const Page = () => {
   const network = networkPayload?.data;
   const invitations = invitationsData?.data;
 
-  // 1. Core dataset divisions based on API status values
+  // 1. Accepted connections come from the dedicated /connections endpoint
+  //    (same source the dashboard sidebar uses successfully)
   const connections = useMemo(() => {
-    return (
-      network?.filter((user) => user.connectionStatus === "ACCEPTED") || []
-    );
-  }, [network]);
+    const raw = connectionsPayload?.data ?? connectionsPayload;
+    return Array.isArray(raw) ? raw : [];
+  }, [connectionsPayload]);
 
   const suggestions = useMemo(() => {
     return (
@@ -134,7 +141,7 @@ const Page = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              {isNetworkLoading ? (
+              {isConnectionsLoading ? (
                 <>
                   <ConnectionSkeleton />
                   <ConnectionSkeleton />

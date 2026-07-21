@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import networkService from "@/lib/services/networkService";
+import { toast } from "sonner";
 
 export function InvitationsList({ invitations=[], isLoading }) {
   const [showAll, setShowAll] = useState(false);
@@ -132,22 +133,45 @@ export function InvitationsList({ invitations=[], isLoading }) {
 export function InvitationItem({ invitation, index, len }) {
   const queryClient = useQueryClient();
 
+  // Optimistically remove this invitation from both cache keys so it
+  // disappears immediately and can't be clicked again (which caused 404).
+  const removeFromCache = (connectionId) => {
+    const removeItem = (old) => {
+      if (!old) return old;
+      // Handle { data: [...] } shape or plain array
+      if (Array.isArray(old?.data)) {
+        return { ...old, data: old.data.filter((i) => i.connectionId !== connectionId) };
+      }
+      if (Array.isArray(old)) {
+        return old.filter((i) => i.connectionId !== connectionId);
+      }
+      return old;
+    };
+    queryClient.setQueryData(["invitations"], removeItem);
+  };
+
   const { mutate, isPending } = useMutation({
-    mutationFn: (data) =>
+    mutationFn: () =>
       networkService.acceptConnection(invitation.connectionId),
     onSuccess: () => {
-      toast.success("Connection request accepted");
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      removeFromCache(invitation.connectionId);
       queryClient.invalidateQueries({ queryKey: ["network"] });
+      toast.success("Connection request accepted");
+    },
+    onError: () => {
+      toast.error("Failed to accept connection request");
     },
   });
 
   const { mutate: ignore, isPending: isIgnoring } = useMutation({
-    mutationFn: (data) =>
+    mutationFn: () =>
       networkService.ignoreConnection(invitation.connectionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      removeFromCache(invitation.connectionId);
       toast.info("Connection request ignored!");
+    },
+    onError: () => {
+      toast.error("Failed to ignore connection request");
     },
   });
 
@@ -160,9 +184,9 @@ export function InvitationItem({ invitation, index, len }) {
     >
       <div className="flex items-center gap-3 min-w-0">
         <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={invitation.avatar} />
+          <AvatarImage src={invitation.profileImagePath || invitation.avatar} />
           <AvatarFallback className="bg-muted">
-            {`${invitation.firstName} ${invitation.lastName}`?.charAt(0) || "?"}
+            {invitation.firstName?.charAt(0) || invitation.lastName?.charAt(0) || "?"}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0">

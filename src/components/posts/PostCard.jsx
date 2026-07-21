@@ -497,10 +497,11 @@ export default function PostCard({
             <div className="h-12 w-12 rounded-full bg-gray-300 overflow-hidden shrink-0">
               <Image
                 src={
-                  (post.profileImagePath.startsWith("http")
-                    ? post.profileImagePath
-                    : `${process.env.NEXT_PUBLIC_API_URL}/${post.profileImagePath}`) ||
-                  "/assets/Profile Image.jpg"
+                  post.profileImagePath
+                    ? post.profileImagePath.startsWith("http")
+                      ? post.profileImagePath
+                      : `${process.env.NEXT_PUBLIC_API_URL}/${post.profileImagePath}`
+                    : "/assets/Profile Image.jpg"
                 }
                 alt={post.author?.firstName || "User"}
                 width={48}

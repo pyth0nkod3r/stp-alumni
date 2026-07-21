@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://app.gfa-tech.com/stp/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://api.blazingtorrent.org/api',
   headers: {
     'Content-Type': 'application/json',
   },

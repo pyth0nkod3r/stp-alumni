@@ -24,6 +24,12 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'api.blazingtorrent.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com',
         port: '',
         pathname: '/**',
@@ -46,7 +52,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://app.gfa-tech.com/stp/api/:path*', // Proxy to Backend
+        destination: 'https://api.blazingtorrent.org/api/:path*', // Proxy to Backend
       },
     ];
   },

@@ -14,11 +14,9 @@ const dealroomService = {
   },
 
   createRoom: async (data) => {
-    const formData = new FormData();
-    formData.append('roomName', data.name);
-    formData.append('roomDescription', data.description || '');
-    const response = await api.post('/dealrooms', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const response = await api.post('/dealrooms', {
+      roomName: data.name,
+      roomDescription: data.description || '',
     });
     return response.data;
   },
@@ -68,8 +66,10 @@ addMembers: async (roomId, userIds) => {
     return response.data;
   },
 
-  getStreamUrl: (roomId, fileId) =>
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/dealrooms/${roomId}/files/${fileId}/stream`,
+  getStreamUrl: (roomId, fileId) => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.blazingtorrent.org/api';
+    return `${base}/dealrooms/${roomId}/files/${fileId}/stream`;
+  },
 
     // ─── NDA ───────────────────────────────────────────────────────
  

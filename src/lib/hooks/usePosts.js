@@ -22,7 +22,7 @@ function normalizePost(post) {
   // Ensure each image path is a full URL (backend already returns full URLs)
   images = images
     .filter(Boolean)
-    .map((img) => img.startsWith('http') ? img : `https://app.gfa-tech.com/stp/${img}`);
+    .map((img) => img.startsWith('http') ? img : `https://api.blazingtorrent.org/${img}`);
 
   // ✅ Build author object from backend fields
   const author = {
@@ -160,22 +160,18 @@ export const useMyPosts = () => {
   });
 };
 export const usePostById = (id) => {
-  // const setMyPosts = usePostStore((state) => state.setMyPosts);
-
   return useQuery({
-    queryKey: ['post',id],
+    queryKey: ['post', id],
     queryFn: async () => {
       const data = await postService.getPostById(id);
-      const raw = Array.isArray(data) ? data : data?.data || [];
-      // const posts = raw.map(normalizePost);
-      // setMyPosts(posts);
-      return raw;
+      const raw = Array.isArray(data) ? data[0] : data?.data || data;
+      return raw ? normalizePost(raw) : null;
     },
     staleTime: 30 * 1000,
     enabled: !!id,
     onError: (error) => {
-      toast.error('Failed to load your posts');
-      console.error('Error fetching my posts:', error);
+      toast.error('Failed to load post');
+      console.error('Error fetching post:', error);
     },
   });
 };

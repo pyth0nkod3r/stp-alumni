@@ -24,7 +24,7 @@ function ConnectedUser({ connection, index, connectionTotal }) {
     const fullName =
       connection.name ||
       `${connection.firstName || ""} ${connection.lastName || ""}`.trim();
-    const avatar = connection.profileImageUrl || connection.avatar;
+    const avatar = connection.profileImagePath || connection.profileImageUrl || connection.avatar;
 
     // Format role/sector
     let formattedRole = "Professional";
