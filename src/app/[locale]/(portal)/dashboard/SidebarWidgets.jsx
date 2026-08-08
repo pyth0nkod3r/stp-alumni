@@ -147,32 +147,44 @@ function SidebarWidgets({ t, height }) {
               {t("messages")} ({messages.length})
             </h3>
             <div className="space-y-3">
-              {messages?.map((message, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden shrink-0">
-                    <Image
-                      src={message.avatar || "/assets/Your Newtork Image.jpg"}
-                      alt={message.name}
-                      width={40}
-                      height={40}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <p className="font-medium text-sm text-[#233389]">
-                        {message.name}
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        {format(message.lastMessageAt, "MMMM d")}
-                      </span>
+              {messages?.map((message, index) => {
+                const lastMsgText =
+                  typeof message?.lastMessage === "string"
+                    ? message.lastMessage
+                    : message?.lastMessage?.content || message?.lastMessage?.text || "";
+
+                const formattedDate =
+                  message?.lastMessageAt && !isNaN(new Date(message.lastMessageAt))
+                    ? format(new Date(message.lastMessageAt), "MMMM d")
+                    : "";
+
+                return (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden shrink-0">
+                      <Image
+                        src={message?.avatar || "/assets/Your Newtork Image.jpg"}
+                        alt={message?.name || "User"}
+                        width={40}
+                        height={40}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
-                    <p className="text-xs text-gray-600 truncate">
-                      {message?.lastMessage.content || ""}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <p className="font-medium text-sm text-[#233389]">
+                          {message?.name}
+                        </p>
+                        <span className="text-xs text-gray-500">
+                          {formattedDate}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 truncate">
+                        {lastMsgText}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <button className="w-full mt-4 text-center text-sm py-2 border border-[#233389] text-[#233389] hover:bg-[#233389] hover:text-white rounded-2xl">
               <Link href="/dashboard/messaging">{t("seeMore")}</Link>
