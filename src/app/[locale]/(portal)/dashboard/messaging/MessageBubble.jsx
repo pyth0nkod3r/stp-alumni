@@ -52,7 +52,7 @@ function MessageStatus({ status }) {
 }
 
 function normalizeMediaUrl(url) {
-  if (!url) return "";
+  if (!url || typeof url !== "string") return "";
   if (
     url.startsWith("http://") ||
     url.startsWith("https://") ||
@@ -79,7 +79,8 @@ function MediaContent({ message }) {
   const isImage =
     message.mediaType === "image" ||
     message.type === "image" ||
-    /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl);
+    /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl) ||
+    (!message.mediaType && !/\.(mp4|webm|ogg|mov|pdf|doc|docx|xls|xlsx)$/i.test(mediaUrl));
 
   const isVideo =
     message.mediaType === "video" ||
@@ -90,28 +91,26 @@ function MediaContent({ message }) {
     return (
       <>
         <div 
-          className="relative w-[240px] h-[180px] cursor-pointer group rounded-lg overflow-hidden bg-black/5"
+          className="relative w-[240px] max-w-full h-[180px] cursor-pointer group rounded-lg overflow-hidden bg-black/5"
           onClick={() => setLightboxOpen(true)}
         >
           {!imageLoaded && (
-            <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center">
-              <div className="h-8 w-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center z-0">
+              <div className="h-7 w-7 rounded-full border-2 border-white/40 border-t-white animate-spin" />
             </div>
           )}
-          <Image
+          <img
             src={mediaUrl}
-            alt="Shared image"
-            fill
+            alt={message.content || "Shared image"}
             className={cn(
-              "object-cover transition-opacity duration-300",
+              "w-full h-full object-cover transition-opacity duration-200 relative z-10",
               imageLoaded ? "opacity-100" : "opacity-0",
             )}
-            unoptimized={true}
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageLoaded(true)}
           />
           {/* Zoom icon overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center z-20">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-2">
               <ZoomIn className="w-5 h-5 text-white" />
             </div>
@@ -124,7 +123,7 @@ function MediaContent({ message }) {
           onClose={() => setLightboxOpen(false)}
           src={mediaUrl}
           alt={message.content || "Image"}
-          type={message.mediaType || message.type}
+          type={message.mediaType || message.type || "image"}
         />
       </>
     );
@@ -289,7 +288,7 @@ export function MessageBubble({
           <div className="flex items-end gap-2">
             {message.isOwn && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {isFailed && onRetry && (message.content && message.mediaUrl.length >0) &&(
+                {isFailed && onRetry && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

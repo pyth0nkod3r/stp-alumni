@@ -43,7 +43,7 @@ const Messaging = () => {
   } = useMessaging();
   useEffect(() => {
     if (conversationId) selectConversation(conversationId);
-  }, [conversationId]);
+  }, [conversationId, selectConversation]);
   // console.log(currentMessages,"currentMessages")
   const [showGroupDiscovery, setShowGroupDiscovery] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);

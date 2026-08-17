@@ -15,13 +15,11 @@ export function useWebSocket({ onNewMessage, onTyping, onReadReceipt, onPresence
     const onReadReceiptRef = useRef(onReadReceipt);
     const onPresenceRef = useRef(onPresence);
 
-    // Keep refs in sync on every render
-    useEffect(() => {
-        onNewMessageRef.current = onNewMessage;
-        onTypingRef.current = onTyping;
-        onReadReceiptRef.current = onReadReceipt;
-        onPresenceRef.current = onPresence;
-    });
+    // Keep refs in sync on every render without triggering useEffect loop
+    onNewMessageRef.current = onNewMessage;
+    onTypingRef.current = onTyping;
+    onReadReceiptRef.current = onReadReceipt;
+    onPresenceRef.current = onPresence;
 
 
     const retryCountRef = useRef(0);
