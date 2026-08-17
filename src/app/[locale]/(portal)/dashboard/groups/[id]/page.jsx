@@ -44,6 +44,10 @@ import {
   useGroupPosts,
   useReportGroup,
 } from "@/lib/hooks/useGroupQueries";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import groupService from "@/lib/services/groupService";
+import { useAuth } from "@/lib/hooks/useUser";
+import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 import { ReportModal } from "./ReportModal";
 import PostCard from "./PostCard";
@@ -83,18 +87,30 @@ function PostSkeleton() {
 
 // ─── Members Modal ────────────────────────────────────────────────────────────
 
-function MembersModal({ open, onOpenChange, groupId }) {
+function MembersModal({ open, onOpenChange, groupId, isAdmin }) {
   const { data: members = [], isLoading } = useGroupMembers(groupId);
+  const queryClient = useQueryClient();
+
+  const { mutate: removeMember, isPending: isRemoving } = useMutation({
+    mutationFn: (userId) => groupService.removeMember(groupId, userId),
+    onSuccess: () => {
+      toast.success("Member removed from group");
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to remove member");
+    },
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-[#233389]">
             <Users className="h-4 w-4" />
-            Members
+            Group Members
             {members.length > 0 && (
-              <Badge variant="secondary">{members.length}</Badge>
+              <Badge variant="secondary" className="rounded-full">{members.length}</Badge>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -107,33 +123,167 @@ function MembersModal({ open, onOpenChange, groupId }) {
             <div className="space-y-3 pr-2">
               {members.map((m) => {
                 const name =
-                  m.name || `${m.firstName || ""} ${m.lastName || ""}`.trim();
+                  m.name || `${m.firstName || ""} ${m.lastName || ""}`.trim() || "Member";
+                const isGroupAdmin = m.memberRole === "ADMIN" || m.role === "ADMIN";
+                const memberUserId = m.userId || m.id;
+
                 return (
                   <div
-                    key={m.userId || m.id}
-                    className="flex items-center gap-3"
+                    key={memberUserId}
+                    className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-gray-50 border border-gray-100"
                   >
-                    <Avatar className="h-9 w-9 shrink-0">
-                      <AvatarImage src={m.profileImagePath || m.avatar} />
-                      <AvatarFallback className="text-xs">
-                        {getInitials(name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{name}</p>
-                      {(m.title || m.companyName) && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          {m.title}
-                          {m.title && m.companyName ? " · " : ""}
-                          {m.companyName}
-                        </p>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarImage src={m.profileImagePath || m.avatar} />
+                        <AvatarFallback className="text-xs">
+                          {getInitials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{name}</p>
+                        {(m.title || m.companyName) && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {m.title}
+                            {m.title && m.companyName ? " · " : ""}
+                            {m.companyName}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {isGroupAdmin ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Admin
+                        </Badge>
+                      ) : (
+                        isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                            disabled={isRemoving}
+                            onClick={() => removeMember(memberUserId)}
+                          >
+                            Remove
+                          </Button>
+                        )
                       )}
                     </div>
-                    {m.memberRole === "ADMIN" && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        Admin
-                      </Badge>
-                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Join Requests Modal ──────────────────────────────────────────────────────
+
+function JoinRequestsModal({ open, onOpenChange, groupId }) {
+  const queryClient = useQueryClient();
+  const { data: requestsData, isLoading } = useQuery({
+    queryKey: ["group-join-requests", groupId],
+    queryFn: () => groupService.getJoinRequests(groupId),
+    enabled: open,
+  });
+
+  const { mutate: respondToRequest, isPending: isResponding } = useMutation({
+    mutationFn: ({ requestId, action }) =>
+      groupService.respondToJoinRequest(groupId, requestId, action),
+    onSuccess: (_, vars) => {
+      toast.success(
+        vars.action === "ACCEPT" ? "Join request accepted" : "Join request rejected"
+      );
+      queryClient.invalidateQueries({ queryKey: ["group-join-requests", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to respond to request");
+    },
+  });
+
+  const requests = Array.isArray(requestsData?.data)
+    ? requestsData.data
+    : Array.isArray(requestsData)
+    ? requestsData
+    : [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-[#233389]">
+            <UserPlus className="h-4 w-4" />
+            Join Requests ({requests.length})
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : requests.length === 0 ? (
+            <p className="text-sm text-center text-muted-foreground py-6">
+              No pending join requests.
+            </p>
+          ) : (
+            <div className="space-y-3 pr-2">
+              {requests.map((req) => {
+                const name =
+                  req.name ||
+                  `${req.firstName || ""} ${req.lastName || ""}`.trim() ||
+                  req.user?.name ||
+                  "User";
+                const reqId = req.requestId || req.id;
+
+                return (
+                  <div
+                    key={reqId}
+                    className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarImage src={req.profileImagePath || req.avatar} />
+                        <AvatarFallback className="text-xs">
+                          {getInitials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{name}</p>
+                        {req.user?.email && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {req.user.email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-[#233389] hover:bg-[#1a2866] text-white rounded-lg"
+                        disabled={isResponding}
+                        onClick={() =>
+                          respondToRequest({ requestId: reqId, action: "ACCEPT" })
+                        }
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 rounded-lg"
+                        disabled={isResponding}
+                        onClick={() =>
+                          respondToRequest({ requestId: reqId, action: "REJECT" })
+                        }
+                      >
+                        Decline
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -150,6 +300,8 @@ function MembersModal({ open, onOpenChange, groupId }) {
 export default function GroupDetailView({ params }) {
   const { id } = React.use(params);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [joinRequestsOpen, setJoinRequestsOpen] = useState(false);
+  const { data: authData } = useAuth();
 
   const { data: group, isLoading: groupLoading } = useGroupById(id);
   const { data: members = [] } = useGroupMembers(id);
@@ -166,8 +318,27 @@ export default function GroupDetailView({ params }) {
   const [reportOpen, setReportOpen] = useState(false);
   const { mutate: reportGroup, isPending: isReporting } = useReportGroup(id);
 
-  console.log(id);
-  
+  const isMember = group?.isMember ?? false;
+  const memberRole = group?.memberRole || null;
+  const currentUserId = authData?.data?.id || authData?.data?.userId;
+  const isUserAdmin =
+    memberRole === "ADMIN" ||
+    authData?.data?.role === "ADMIN" ||
+    group?.createdById === currentUserId;
+
+  const { mutate: generateInviteLink, isPending: isGeneratingLink } = useMutation({
+    mutationFn: () => groupService.generateInviteLink(id),
+    onSuccess: (res) => {
+      const inviteUrl =
+        res?.data?.inviteUrl ||
+        `${window.location.origin}/dashboard/groups?invite=${res?.data?.token || res?.token || id}`;
+      navigator.clipboard.writeText(inviteUrl);
+      toast.success("Invite link copied to clipboard!");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to generate invite link");
+    },
+  });
 
   const handleReportGroup = (reason, description) => {
     return new Promise((resolve, reject) => {
@@ -182,8 +353,6 @@ export default function GroupDetailView({ params }) {
   };
 
   const posts = postsData?.pages.flat() || [];
-  const isMember = group?.isMember ?? false;
-  const memberRole = group?.memberRole || null;
 
   // Find admin from members list
   const admin = members.find((m) => m.memberRole === "ADMIN");
@@ -312,6 +481,21 @@ export default function GroupDetailView({ params }) {
                         <Link className="h-4 w-4 mr-2" />
                         Copy link to group
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => generateInviteLink()}
+                        disabled={isGeneratingLink}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {isGeneratingLink ? "Generating link..." : "Generate invite link"}
+                      </DropdownMenuItem>
+                      {isUserAdmin && (
+                        <DropdownMenuItem
+                          onClick={() => setJoinRequestsOpen(true)}
+                        >
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Manage join requests
+                        </DropdownMenuItem>
+                      )}
                       {isMember && (
                         <DropdownMenuItem
                           onClick={() => toggleMembership("LEAVE")}
@@ -513,6 +697,14 @@ export default function GroupDetailView({ params }) {
         <MembersModal
           open={membersOpen}
           onOpenChange={setMembersOpen}
+          groupId={id}
+          isAdmin={isUserAdmin}
+        />
+
+        {/* Join requests modal */}
+        <JoinRequestsModal
+          open={joinRequestsOpen}
+          onOpenChange={setJoinRequestsOpen}
           groupId={id}
         />
       </div>

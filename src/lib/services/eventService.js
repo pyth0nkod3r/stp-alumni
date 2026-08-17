@@ -25,16 +25,38 @@ const eventService = {
    * @param {FormData} formData
    */
   createEvent: async (formData) => {
-    const response = await api.post('/events', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/events', formData);
     return response.data;
   },
 
   registerEvent: async (id) => {
     const response = await api.post(`/events/${id}/register`);
+    return response.data;
+  },
+
+  /**
+   * Cancel event registration
+   * @param {string} id - event ID
+   */
+  cancelRegistration: async (id) => {
+    const response = await api.delete(`/events/${id}/register`);
+    return response.data;
+  },
+
+  /**
+   * Fetch registered events for the current user
+   */
+  getMyEvents: async () => {
+    const response = await api.get('/events/mine');
+    return response.data;
+  },
+
+  /**
+   * View event registrants (owner or admin only)
+   * @param {string} eventId
+   */
+  getEventRegistrants: async (eventId) => {
+    const response = await api.get(`/events/${eventId}/registrants`);
     return response.data;
   },
 };

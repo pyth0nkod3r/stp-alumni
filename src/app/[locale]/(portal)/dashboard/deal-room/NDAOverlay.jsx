@@ -11,10 +11,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSignNda } from "@/lib/hooks/useDealroomQueries";
+import { useQuery } from "@tanstack/react-query";
+import dealroomService from "@/lib/services/dealroomService";
 
 function NDAOverlay({ room, currentUserId, onSign }) {
   const [agreed, setAgreed] = useState(false);
   const { mutateAsync: signNda, isPending } = useSignNda();
+
+  const { data: ndaData, isLoading: isLoadingNda } = useQuery({
+    queryKey: ["dealroom-nda-text"],
+    queryFn: dealroomService.getNdaText,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const ndaContent = ndaData?.data?.ndaText || ndaData?.data?.text || ndaData?.ndaText || null;
 
   const handleSign = async () => {
     if (!agreed || isPending) return;
@@ -56,28 +66,36 @@ function NDAOverlay({ room, currentUserId, onSign }) {
             </div>
 
             {/* Terms */}
-            <div className="bg-muted/50 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">
-                By signing, you agree to:
-              </p>
-              <ul className="space-y-2.5">
-                {[
-                  "Keep all information strictly confidential and not disclose it to any third party",
-                  "Not copy, share, or distribute any documents shared in this room outside the platform",
-                  "Use all communications solely for the purposes of this deal",
-                  "Accept that unauthorized disclosure may result in legal consequences",
-                ].map((term, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-2.5 text-sm text-muted-foreground"
-                  >
-                    <span className="mt-0.5 h-4 w-4 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                      {i + 1}
-                    </span>
-                    {term}
-                  </li>
-                ))}
-              </ul>
+            <div className="bg-muted/50 rounded-xl p-4 space-y-3 max-h-48 overflow-y-auto">
+              {ndaContent ? (
+                <div className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {ndaContent}
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-foreground">
+                    By signing, you agree to:
+                  </p>
+                  <ul className="space-y-2.5">
+                    {[
+                      "Keep all information strictly confidential and not disclose it to any third party",
+                      "Not copy, share, or distribute any documents shared in this room outside the platform",
+                      "Use all communications solely for the purposes of this deal",
+                      "Accept that unauthorized disclosure may result in legal consequences",
+                    ].map((term, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                      >
+                        <span className="mt-0.5 h-4 w-4 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {i + 1}
+                        </span>
+                        {term}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
 
             {/* Checkbox */}

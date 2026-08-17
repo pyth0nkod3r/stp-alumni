@@ -60,9 +60,17 @@ addMembers: async (roomId, userIds) => {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post(`/dealrooms/${roomId}/files`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress,
     });
+    return response.data;
+  },
+
+  /**
+   * View all files in a deal room
+   * @param {string} roomId
+   */
+  getFiles: async (roomId) => {
+    const response = await api.get(`/dealrooms/${roomId}/files`);
     return response.data;
   },
 
@@ -71,13 +79,20 @@ addMembers: async (roomId, userIds) => {
     return `${base}/dealrooms/${roomId}/files/${fileId}/stream`;
   },
 
-    // ─── NDA ───────────────────────────────────────────────────────
- 
+  // ─── NDA ───────────────────────────────────────────────────────
+
+  /**
+   * Get NDA text
+   */
+  getNdaText: async () => {
+    const response = await api.get('/dealrooms/nda-text');
+    return response.data;
+  },
+
   signNda: async (roomId) => {
     const response = await api.post(`/dealrooms/${roomId}/nda-signatures`);
     return response.data;
   },
- 
 
   // ─── Audit log ─────────────────────────────────────────────────
 

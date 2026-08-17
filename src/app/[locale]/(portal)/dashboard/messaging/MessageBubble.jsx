@@ -51,28 +51,46 @@ function MessageStatus({ status }) {
   }
 }
 
+function normalizeMediaUrl(url) {
+  if (!url) return "";
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  const cleanPath = url.startsWith("/") ? url.slice(1) : url;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "")
+    : "https://api.blazingtorrent.org";
+  return `${baseUrl}/${cleanPath}`;
+}
+
 function MediaContent({ message }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   if (!message.mediaUrl) return null;
+  const mediaUrl = normalizeMediaUrl(message.mediaUrl);
 
   const isImage =
     message.mediaType === "image" ||
     message.type === "image" ||
-    /\.(jpg|jpeg|png|gif|webp)$/i.test(message.mediaUrl);
+    /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl);
 
   const isVideo =
     message.mediaType === "video" ||
     message.type === "video" ||
-    /\.(mp4|webm|ogg|mov)$/i.test(message.mediaUrl);
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl);
 
   if (isImage) {
     return (
       <>
         <div 
-          className="relative w-[240px] h-[180px] cursor-pointer group"
+          className="relative w-[240px] h-[180px] cursor-pointer group rounded-lg overflow-hidden bg-black/5"
           onClick={() => setLightboxOpen(true)}
         >
           {!imageLoaded && (
@@ -81,17 +99,18 @@ function MediaContent({ message }) {
             </div>
           )}
           <Image
-            src={message.mediaUrl}
+            src={mediaUrl}
             alt="Shared image"
             fill
             className={cn(
               "object-cover transition-opacity duration-300",
               imageLoaded ? "opacity-100" : "opacity-0",
             )}
-            unoptimized={message.mediaUrl.startsWith("blob:")}
+            unoptimized={true}
             onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
           />
-          {/* ADD - Zoom icon overlay */}
+          {/* Zoom icon overlay */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-2">
               <ZoomIn className="w-5 h-5 text-white" />
@@ -99,11 +118,11 @@ function MediaContent({ message }) {
           </div>
         </div>
         
-        {/* ADD - Lightbox */}
+        {/* Lightbox */}
         <ImageLightbox
           isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
-          src={message.mediaUrl}
+          src={mediaUrl}
           alt={message.content || "Image"}
           type={message.mediaType || message.type}
         />

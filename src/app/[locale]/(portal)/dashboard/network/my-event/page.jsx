@@ -10,8 +10,8 @@ function Page() {
   const { setEvents, setLoading, setError } = useEventStore();
 
   const { data: eventsData, isLoading, error } = useQuery({
-    queryKey: ['events'],
-    queryFn: eventService.getEvents,
+    queryKey: ['my-events'],
+    queryFn: eventService.getMyEvents,
     staleTime: 5 * 60 * 1000,
   });
 

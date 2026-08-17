@@ -24,8 +24,11 @@ export default function CreatePost({ onPostCreated }) {
   const [postContent, setPostContent] = useState("");
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [video, setVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [isFocused, setIsFocused] = useState(false);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   const { mutate: createPost, isLoading } = useCreatePost();
 
@@ -84,9 +87,36 @@ export default function CreatePost({ onPostCreated }) {
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
 
+  const handleVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size limit: max 50MB
+    const maxVideoSize = 50 * 1024 * 1024;
+    if (file.size > maxVideoSize) {
+      toast.error("Video size must be 50MB or less");
+      return;
+    }
+
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveVideo = () => {
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideo(null);
+    setVideoPreview(null);
+  };
+
   const handleSubmit = () => {
-    if (!postContent.trim() && images.length === 0) {
-      toast.error("Please add some content or images");
+    if (!postContent.trim() && images.length === 0 && !video) {
+      toast.error("Please add some content, images, or video");
       return;
     }
 
@@ -99,6 +129,7 @@ export default function CreatePost({ onPostCreated }) {
       {
         body: postContent,
         images: images,
+        video: video,
       },
       {
         onSuccess: () => {
@@ -106,6 +137,7 @@ export default function CreatePost({ onPostCreated }) {
           setImages([]);
           revokePreviews(imagePreviews);
           setImagePreviews([]);
+          handleRemoveVideo();
           onPostCreated?.();
           toast.success("Post created successfully!");
         },
@@ -113,7 +145,7 @@ export default function CreatePost({ onPostCreated }) {
     );
   };
 
-  const canSubmit = (postContent.trim() || images.length > 0) && !isOverLimit && !isLoading;
+  const canSubmit = (postContent.trim() || images.length > 0 || video) && !isOverLimit && !isLoading;
 
   return (
     <div className="rounded-2xl bg-linear-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/50 p-5 shadow-sm border border-gray-200/60 dark:border-gray-700/60 transition-all hover:shadow-md">
@@ -209,6 +241,24 @@ export default function CreatePost({ onPostCreated }) {
           </div>
         )}
 
+        {/* Video Preview */}
+        {videoPreview && (
+          <div className="relative rounded-xl overflow-hidden bg-black aspect-video max-h-64 flex items-center justify-center shadow-sm">
+            <video
+              src={videoPreview}
+              controls
+              className="w-full h-full object-contain max-h-64"
+            />
+            <button
+              onClick={handleRemoveVideo}
+              className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black/90 backdrop-blur-sm rounded-full text-white transition-all hover:scale-110 z-10"
+              disabled={isLoading}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Footer Actions */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
           <div className="flex items-center gap-1">
@@ -219,12 +269,20 @@ export default function CreatePost({ onPostCreated }) {
               accept="image/*"
               multiple
               className="hidden"
-              disabled={isLoading}
+              disabled={isLoading || !!video}
+            />
+            <input
+              type="file"
+              ref={videoInputRef}
+              onChange={handleVideoSelect}
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+              className="hidden"
+              disabled={isLoading || images.length > 0}
             />
             <button
               onClick={() => fileInputRef.current?.click()}
               className="group flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 text-gray-600 dark:text-gray-400"
-              disabled={isLoading || images.length >= 4}
+              disabled={isLoading || images.length >= 4 || !!video}
             >
               <div className="p-1 rounded-lg bg-[#233389]/5 group-hover:bg-[#233389]/10 transition-colors">
                 <ImageIcon className="h-4 w-4 text-[#233389]" />
@@ -234,14 +292,17 @@ export default function CreatePost({ onPostCreated }) {
               </span>
             </button>
             <button
-              className="group flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-              disabled
+              onClick={() => videoInputRef.current?.click()}
+              className={`group flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 ${
+                video ? "text-[#233389] font-medium" : "text-gray-600 dark:text-gray-400"
+              }`}
+              disabled={isLoading || images.length > 0 || !!video}
             >
-              <div className="p-1 rounded-lg bg-gray-100/50 dark:bg-gray-800/50">
-                <Video className="h-4 w-4 text-gray-400 dark:text-gray-600" />
+              <div className="p-1 rounded-lg bg-[#233389]/5 group-hover:bg-[#233389]/10 transition-colors">
+                <Video className="h-4 w-4 text-[#233389]" />
               </div>
-              <span className="text-sm font-medium hidden sm:inline text-gray-400 dark:text-gray-600">
-                Video
+              <span className="text-sm font-medium hidden sm:inline">
+                {video ? "Video added" : "Add Video"}
               </span>
             </button>
           </div>

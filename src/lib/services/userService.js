@@ -25,21 +25,13 @@ const userService = {
   },
   uploadProfileImage: async (file) => {
     const formData = new FormData();
-  formData.append('profileImage', file);
-    const response = await api.post('/users/profile/avatar', formData,{
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-    return response;
+    formData.append('profileImage', file);
+    const response = await api.post('/users/profile/avatar', formData);
+    return response.data;
   },
 
   setupProfile: async (formData) => {
-    const response = await api.post('/users/profile/setup', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/users/profile/setup', formData);
     return response.data;
   },
 
@@ -53,6 +45,22 @@ const userService = {
       oldPassword,
       newPassword,
     });
+    return response.data;
+  },
+
+  /**
+   * Deactivate current user account
+   */
+  deactivateAccount: async () => {
+    const response = await api.delete('/users/me');
+    return response.data;
+  },
+
+  /**
+   * Get user's saved posts
+   */
+  getSavedPosts: async () => {
+    const response = await api.get('/users/saved-posts');
     return response.data;
   },
 };

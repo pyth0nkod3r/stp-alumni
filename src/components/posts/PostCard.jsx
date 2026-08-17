@@ -7,6 +7,7 @@ import {
   Heart,
   MessageSquare,
   Bookmark,
+  BookmarkCheck,
   Link as LinkIcon,
   Plus,
   Send,
@@ -15,6 +16,9 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
+  Pencil,
+  Trash2,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,14 +27,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "@/lib/helper";
-import { usePostComments, useCommentPost } from "@/lib/hooks/usePosts";
+import {
+  usePostComments,
+  useCommentPost,
+  useEditPost,
+  useDeletePost,
+  useToggleSaveFeedPost,
+} from "@/lib/hooks/usePosts";
 // import useAuthStore from "@/lib/store/useAuthStore";
 import { useAuth } from "@/lib/hooks/useUser";
 import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Constants for word limits
 const MAX_WORDS = 1250;
@@ -379,17 +392,34 @@ export default function PostCard({
   onFollow,
   onSave,
   onCopyLink,
+  onDelete,
+  onEdit,
 }) {
   const t = useTranslations("Dashboard");
+  const { data: currentUser } = useAuth();
   const [openDropdown, setOpenDropdown] = useState(false);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [fullImageOpen, setFullImageOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editContent, setEditContent] = useState(post.body || post.content || "");
+  const [isSaved, setIsSaved] = useState(!!post.isSaved);
   const dropdownRef = useRef(null);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [showReadMore, setShowReadMore] = useState(false);
   const contentRef = useRef(null);
+
+  const { mutate: editPost, isPending: isEditing } = useEditPost();
+  const { mutate: deletePost, isPending: isDeleting } = useDeletePost();
+  const { mutate: toggleSavePost, isPending: isSaving } = useToggleSaveFeedPost();
+
+  // Check if current user is owner or admin
+  const currentUserId = currentUser?.data?.id || currentUser?.data?.userId;
+  const isOwner = currentUserId && (currentUserId === post.authorId || currentUserId === post.user_id || currentUserId === post.author?.id);
+  const isAdmin = currentUser?.data?.role === "ADMIN";
+  const canModify = isOwner || isAdmin;
 
   useEffect(() => {
     // Check if content exceeds limit (e.g., 200 characters or 30 words)
@@ -436,14 +466,45 @@ export default function PostCard({
 
   const handleSave = () => {
     setOpenDropdown(false);
-    onSave?.(post.id);
+    setIsSaved((prev) => !prev);
+    if (onSave) {
+      onSave(post.id);
+    } else {
+      toggleSavePost(post.id);
+    }
   };
 
   const handleCopyLink = () => {
     setOpenDropdown(false);
     const postUrl = `${window.location.origin}/dashboard/post/${post.id}`;
     navigator.clipboard.writeText(postUrl);
+    toast.success("Post link copied to clipboard");
     onCopyLink?.(post.id);
+  };
+
+  const handleEditSubmit = () => {
+    if (!editContent.trim()) {
+      toast.error("Post content cannot be empty");
+      return;
+    }
+    editPost(
+      { postId: post.id, data: { body: editContent.trim() } },
+      {
+        onSuccess: () => {
+          setEditModalOpen(false);
+          onEdit?.(post.id, editContent.trim());
+        },
+      }
+    );
+  };
+
+  const handleDeleteSubmit = () => {
+    deletePost(post.id, {
+      onSuccess: () => {
+        setDeleteModalOpen(false);
+        onDelete?.(post.id);
+      },
+    });
   };
 
   const openFullImage = (index) => {
@@ -487,10 +548,11 @@ export default function PostCard({
 
   const images = post.images || [];
   const hasImages = images.length > 0;
+  const videoUrl = post.videoUrl || post.video || post.postVideo;
 
   return (
     <>
-      <div className="bg-white rounded-lg p-4 lg:p-6">
+      <div className="bg-white rounded-lg p-4 lg:p-6 shadow-xs border border-gray-100">
         {/* ── Post Header ── */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex gap-3">
@@ -546,18 +608,6 @@ export default function PostCard({
               </Button>
             )}
 
-            {/* {post.connectionStatus === "PENDING" && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="text-gray-500 border-gray-300 bg-gray-50"
-              >
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                {t("pending")}
-              </Button>
-            )} */}
-
             {post.connectionStatus === "ACCEPTED" && (
               <Button
                 variant="ghost"
@@ -568,32 +618,68 @@ export default function PostCard({
                 {t("following")}
               </Button>
             )}
+
             {/* Three-dot Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-[#233389] transition-colors"
                 onClick={() => setOpenDropdown(!openDropdown)}
+                aria-label="Post actions"
               >
-                <MoreHorizontal className="h-5 w-5 text-[#233389]" />
+                <MoreHorizontal className="h-5 w-5" />
               </button>
               {openDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-20 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     onClick={handleSave}
-                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-left"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 text-left text-gray-700 hover:text-[#233389] transition-colors"
                   >
-                    <Bookmark className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm text-gray-900">{t("save")}</span>
+                    {isSaved ? (
+                      <>
+                        <BookmarkCheck className="h-4 w-4 text-[#233389]" />
+                        <span className="text-sm font-medium text-[#233389]">Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{t("save")}</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-left rounded-b-lg"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 text-left text-gray-700 hover:text-[#233389] transition-colors"
                   >
-                    <LinkIcon className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm text-gray-900">
-                      {t("copyLink")}
-                    </span>
+                    <LinkIcon className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{t("copyLink")}</span>
                   </button>
+
+                  {canModify && (
+                    <>
+                      <div className="h-px bg-gray-100 my-1" />
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(false);
+                          setEditContent(post.body || post.content || "");
+                          setEditModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 text-left text-gray-700 hover:text-blue-600 transition-colors"
+                      >
+                        <Pencil className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">Edit post</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(false);
+                          setDeleteModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-red-50 text-left text-red-600 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">Delete post</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -603,7 +689,7 @@ export default function PostCard({
         {/* ── Post Body ── */}
         {(post.body || post.content) && (
           <div className="mb-4">
-            <p className="text-gray-700 whitespace-pre-wrap">
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
               {showReadMore && !isExpanded
                 ? (post.body || post.content).slice(0, 200) + "..."
                 : post.body || post.content}
@@ -616,6 +702,23 @@ export default function PostCard({
                 {isExpanded ? t("readLess") : t("readMore")}
               </button>
             )}
+          </div>
+        )}
+
+        {/* ── Video Player ── */}
+        {videoUrl && (
+          <div className="mb-4 rounded-xl overflow-hidden bg-black aspect-video max-h-[450px] flex items-center justify-center shadow-xs">
+            <video
+              src={
+                videoUrl.startsWith("http")
+                  ? videoUrl
+                  : `${process.env.NEXT_PUBLIC_API_URL}/${videoUrl}`
+              }
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-contain"
+            />
           </div>
         )}
 
@@ -839,6 +942,91 @@ export default function PostCard({
         onClose={() => setCommentModalOpen(false)}
         post={post}
       />
+
+      {/* ── Edit Post Modal ── */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#233389]">Edit Post</DialogTitle>
+            <DialogDescription>
+              Update your post content below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={5}
+              placeholder="What would you like to say?"
+              className="resize-none rounded-xl border-gray-200 focus:border-[#233389] focus:ring-[#233389]/10"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              disabled={isEditing}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={isEditing || !editContent.trim()}
+              className="bg-[#233389] hover:bg-[#1a2866] text-white rounded-xl"
+            >
+              {isEditing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Delete Post
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSubmit}
+              disabled={isDeleting}
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Post"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

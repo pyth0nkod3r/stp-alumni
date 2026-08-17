@@ -10,6 +10,9 @@ import {
   FileText,
   SlidersHorizontal,
   Loader2,
+  Trash2,
+  Play,
+  Film,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import resourceService from "@/lib/services/resourceService";
+import { useAuth } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,10 +55,18 @@ import { Separator } from "@/components/ui/separator";
  */
 export default function ResourcesPage() {
   const t = useTranslations("Resources");
+  const { data: authData } = useAuth();
+  const currentUser = authData?.data;
+  const currentUserId = currentUser?.id || currentUser?.userId;
+  const isAdmin = currentUser?.role === "ADMIN";
+
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [previewVideo, setPreviewVideo] = useState(null);
+  const [deleteResourceId, setDeleteResourceId] = useState(null);
+
   const [uploadForm, setUploadForm] = useState({
     title: "",
     description: "",
@@ -91,7 +104,6 @@ export default function ResourcesPage() {
     queryFn: () => {
       const params = {};
 
-      // Use the actual labels or IDs expected by the backend
       if (selectedCategory && selectedCategory !== "all") {
         params.category = selectedCategory;
       }
@@ -101,7 +113,6 @@ export default function ResourcesPage() {
       }
 
       if (filters.fileTypes.length > 0) {
-        // usually passed as comma separated or multiple parameters depending on the API
         params.fileType = filters.fileTypes.join(",");
       }
 
@@ -110,6 +121,18 @@ export default function ResourcesPage() {
       }
 
       return resourceService.getResources(params);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (resourceId) => resourceService.deleteResource(resourceId),
+    onSuccess: () => {
+      toast.success("Resource deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["resources"] });
+      setDeleteResourceId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete resource");
     },
   });
 
@@ -127,16 +150,19 @@ export default function ResourcesPage() {
     return parts.length > 1 ? parts.pop().toUpperCase().slice(0, 4) : "DOC";
   };
 
+  const isVideoFile = (resource) => {
+    if (resource.isVideo || resource.category === "videos" || resource.category === "video") return true;
+    const url = resource.resourceFileUrl || "";
+    return /\.(mp4|webm|mov|avi|mkv)$/i.test(url);
+  };
+
   const getCategoryLabel = (categoryId) => {
     const category = categories.find((cat) => cat.id === categoryId);
     return category ? category.label : categoryId;
   };
 
-  // Optional: Some fallback client-side sort if API only returns unsorted, but API handles it generally
   const filteredResources = useMemo(() => {
     if (!Array.isArray(resources)) return [];
-    // The API handles the filtering/sorting based on query params.
-    // We just return what it provides.
     return resources;
   }, [resources]);
 
@@ -463,97 +489,151 @@ export default function ResourcesPage() {
         </div>
       ) : filteredResources.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResources.map((resource) => (
-            <Card
-              key={resource.resourceId || resource.id}
-              className="p-6 hover:shadow-md transition-shadow bg-white flex flex-col h-full"
-            >
-              <div className="flex flex-col h-full flex-grow">
-                {/* File Type Icon and Title */}
-                <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className={`${resource.iconColor || "bg-blue-500"} w-12 h-12 rounded flex items-center justify-center shrink-0`}
-                  >
-                    <span className="text-white font-semibold text-sm">
-                      {getFileTypeDisplay(
-                        resource.resourceFileUrl || resource.fileType,
+          {filteredResources.map((resource) => {
+            const resId = resource.resourceId || resource.id;
+            const isVideo = isVideoFile(resource);
+            const isAuthor =
+              currentUserId &&
+              (resource.authorId === currentUserId ||
+                resource.userId === currentUserId ||
+                resource.createdById === currentUserId);
+            const canDelete = isAuthor || isAdmin;
+
+            return (
+              <Card
+                key={resId}
+                className="p-6 hover:shadow-md transition-shadow bg-white flex flex-col h-full rounded-2xl border border-gray-100"
+              >
+                <div className="flex flex-col h-full flex-grow">
+                  {/* File Type Icon and Title */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <div
+                      className={`${
+                        isVideo
+                          ? "bg-purple-600"
+                          : resource.iconColor || "bg-blue-500"
+                      } w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-xs`}
+                    >
+                      {isVideo ? (
+                        <Film className="h-6 w-6 text-white" />
+                      ) : (
+                        <span className="text-white font-semibold text-sm">
+                          {getFileTypeDisplay(
+                            resource.resourceFileUrl || resource.fileType,
+                          )}
+                        </span>
                       )}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-base leading-tight">
-                      {resource.title}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1">
-                  {resource.description}
-                </p>
-
-                {/* Category Badge */}
-                <div className="mb-4">
-                  <Badge
-                    variant="outline"
-                    className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-2 py-0.5"
-                  >
-                    {getCategoryLabel(resource.category)}
-                  </Badge>
-                </div>
-
-                {/* Author, Date, and Download Button */}
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2">
-                    
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src=""
-                        alt={resource.author || "User"}
-                      />
-                      <AvatarFallback>
-                        {(`${resource.authorFirstName} ${resource.authorLastName}`|| "U").charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">
-                        {`${resource.authorFirstName} ${resource.authorLastName}` || "User"}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {resource.createdAt
-                          ? new Date(resource.createdAt).toLocaleDateString()
-                          : resource.date || "Recently"}
-                      </p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-base leading-tight">
+                        {resource.title}
+                      </h3>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      if (resource.resourceFileUrl) {
-                        // Create a temporary anchor element
-                        const link = document.createElement("a");
-                        link.href = resource.resourceFileUrl;
-                        link.download = resource.title || "download"; // Set download filename
-                        link.target = "_blank"; // Optional: open in new tab if download doesn't work
 
-                        // Append to body, click, and remove
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
+                  {/* Description */}
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1 leading-relaxed">
+                    {resource.description}
+                  </p>
 
-                        toast.success(t("downloadStarted"));
-                      } else {
-                        toast.error(t("downloadError"));
-                      }
-                    }}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-md text-sm font-medium border border-[#233389] bg-white text-[#233389] hover:bg-[#233389] hover:text-white transition-colors duration-200"
-                  >
-                    <Download className="h-4 w-4" />
-                    {t("download")}
-                  </button>
+                  {/* Category Badge & Video tag */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-2.5 py-0.5 rounded-full"
+                    >
+                      {getCategoryLabel(resource.category)}
+                    </Badge>
+                    {isVideo && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-50 text-purple-700 border-purple-200 text-xs px-2.5 py-0.5 rounded-full"
+                      >
+                        Video
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Author, Date, and Action Buttons */}
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="" alt={resource.author || "User"} />
+                        <AvatarFallback className="bg-blue-50 text-[#233389] text-xs">
+                          {(
+                            `${resource.authorFirstName || ""} ${resource.authorLastName || ""}`.trim() || "U"
+                          ).charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-xs font-medium text-gray-900 truncate max-w-[100px]">
+                          {`${resource.authorFirstName || ""} ${resource.authorLastName || ""}`.trim() ||
+                            "User"}
+                        </p>
+                        <p className="text-[10px] text-gray-500">
+                          {resource.createdAt
+                            ? new Date(resource.createdAt).toLocaleDateString()
+                            : resource.date || "Recently"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {isVideo && (
+                        <button
+                          onClick={() =>
+                            setPreviewVideo({
+                              title: resource.title,
+                              url:
+                                resourceService.getStreamUrl(resId) ||
+                                resource.resourceFileUrl,
+                            })
+                          }
+                          className="inline-flex items-center justify-center gap-1 px-2.5 h-8 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+                          title="Watch video"
+                        >
+                          <Play className="h-3.5 w-3.5 fill-purple-700" />
+                          Watch
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          if (resource.resourceFileUrl) {
+                            const link = document.createElement("a");
+                            link.href = resource.resourceFileUrl;
+                            link.download = resource.title || "download";
+                            link.target = "_blank";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            toast.success(t("downloadStarted"));
+                          } else {
+                            toast.error(t("downloadError"));
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-1 px-2.5 h-8 rounded-lg text-xs font-medium border border-[#233389] bg-white text-[#233389] hover:bg-[#233389] hover:text-white transition-colors"
+                        title="Download"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">{t("download")}</span>
+                      </button>
+
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteResourceId(resId)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete resource"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -577,6 +657,73 @@ export default function ResourcesPage() {
           )}
         </div>
       )}
+
+      {/* ── Video Stream Modal ── */}
+      <Dialog
+        open={!!previewVideo}
+        onOpenChange={(open) => !open && setPreviewVideo(null)}
+      >
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-black rounded-2xl border-0">
+          <DialogHeader className="p-4 bg-gray-900 text-white flex flex-row items-center justify-between">
+            <DialogTitle className="text-white text-base font-medium truncate pr-4">
+              {previewVideo?.title || "Video Resource"}
+            </DialogTitle>
+          </DialogHeader>
+          {previewVideo?.url && (
+            <div className="aspect-video bg-black flex items-center justify-center">
+              <video
+                src={previewVideo.url}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Resource Confirmation Modal ── */}
+      <Dialog
+        open={!!deleteResourceId}
+        onOpenChange={(open) => !open && setDeleteResourceId(null)}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Delete Resource
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this resource? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteResourceId(null)}
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate(deleteResourceId)}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

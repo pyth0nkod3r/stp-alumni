@@ -9,17 +9,22 @@ import {
   SendHorizontal,
   Loader2,
   X,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useCreateGroupPost,
 } from "@/lib/hooks/useGroupQueries";
+import { toast } from "sonner";
 
 function CreatePostCard({ groupId, isMember }) {
   const [body, setBody] = useState("");
   const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [isFocused, setIsFocused] = useState(false);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const textareaRef = useRef(null);
   const { mutate: createPost, isPending } = useCreateGroupPost(groupId);
 
@@ -57,6 +62,24 @@ function CreatePostCard({ groupId, isMember }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Video size must be 50MB or less");
+      return;
+    }
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveVideo = () => {
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideo(null);
+    setVideoPreview(null);
+  };
+
   const handleBodyChange = (e) => {
     const value = e.target.value;
     const words = value.trim().split(/\s+/);
@@ -71,14 +94,15 @@ function CreatePostCard({ groupId, isMember }) {
 
   const handleSubmit = () => {
     const text = body.trim();
-    if (!text || isPending || isOverLimit) return;
+    if ((!text && images.length === 0 && !video) || isPending || isOverLimit) return;
 
     createPost(
-      { body: text, images },
+      { body: text, images, video },
       {
         onSuccess: () => {
           setBody("");
           setImages([]);
+          handleRemoveVideo();
           textareaRef.current?.focus();
         },
       },
@@ -92,7 +116,7 @@ function CreatePostCard({ groupId, isMember }) {
     }
   };
 
-  const canSubmit = body.trim() && !isOverLimit && !isPending;
+  const canSubmit = (body.trim() || images.length > 0 || video) && !isOverLimit && !isPending;
 
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -163,6 +187,23 @@ function CreatePostCard({ groupId, isMember }) {
           </div>
         )}
 
+        {/* Video preview */}
+        {videoPreview && (
+          <div className="relative rounded-lg overflow-hidden bg-black aspect-video max-h-48 flex items-center justify-center mt-2 shadow-xs">
+            <video
+              src={videoPreview}
+              controls
+              className="w-full h-full object-contain max-h-48"
+            />
+            <button
+              onClick={handleRemoveVideo}
+              className="absolute top-1.5 right-1.5 p-1 bg-black/70 hover:bg-black/90 rounded-full text-white transition-transform hover:scale-110"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Footer actions */}
         <div className="flex items-center justify-between mt-3 pt-3 border-t">
           <div className="flex items-center gap-1">
@@ -171,7 +212,7 @@ function CreatePostCard({ groupId, isMember }) {
               size="icon"
               className="h-8 w-8 hover:bg-stp-blue-light/10 transition-colors"
               onClick={() => fileInputRef.current?.click()}
-              disabled={images.length >= 4}
+              disabled={images.length >= 4 || !!video}
             >
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -182,12 +223,38 @@ function CreatePostCard({ groupId, isMember }) {
               multiple
               className="hidden"
               onChange={handleImageSelect}
+              disabled={!!video}
+            />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 hover:bg-stp-blue-light/10 transition-colors ${
+                video ? "text-[#233389]" : "text-muted-foreground"
+              }`}
+              onClick={() => videoInputRef.current?.click()}
+              disabled={images.length > 0 || !!video}
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+              className="hidden"
+              onChange={handleVideoSelect}
+              disabled={images.length > 0}
             />
 
             {/* Image counter */}
             {images.length > 0 && (
               <span className="text-[10px] text-muted-foreground ml-1">
                 {images.length}/4
+              </span>
+            )}
+            {video && (
+              <span className="text-[10px] text-[#233389] font-medium ml-1">
+                Video attached
               </span>
             )}
           </div>

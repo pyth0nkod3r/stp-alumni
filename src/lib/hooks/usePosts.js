@@ -320,3 +320,68 @@ export const usePostComments = (postId) => {
     },
   });
 };
+
+/**
+ * Hook to edit a post
+ */
+export const useEditPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ postId, data }) => postService.editPost(postId, data),
+    onSuccess: (_, variables) => {
+      toast.success('Post updated!');
+      queryClient.invalidateQueries(['posts']);
+      queryClient.invalidateQueries(['myPosts']);
+      queryClient.invalidateQueries(['post', variables.postId]);
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to edit post');
+    },
+  });
+};
+
+/**
+ * Hook to delete a post
+ */
+export const useDeletePost = () => {
+  const queryClient = useQueryClient();
+  const removePost = usePostStore((state) => state.removePost);
+
+  return useMutation({
+    mutationFn: (postId) => postService.deletePost(postId),
+    onMutate: async (postId) => {
+      removePost(postId);
+    },
+    onSuccess: () => {
+      toast.success('Post deleted successfully');
+      queryClient.invalidateQueries(['posts']);
+      queryClient.invalidateQueries(['myPosts']);
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to delete post');
+      queryClient.invalidateQueries(['posts']);
+      queryClient.invalidateQueries(['myPosts']);
+    },
+  });
+};
+
+/**
+ * Hook to save/unsave a feed post
+ */
+export const useToggleSaveFeedPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (postId) => postService.toggleSavePost(postId),
+    onSuccess: () => {
+      toast.success('Post saved status updated');
+      queryClient.invalidateQueries(['posts']);
+      queryClient.invalidateQueries(['myPosts']);
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || 'Failed to update saved post');
+    },
+  });
+};
+
