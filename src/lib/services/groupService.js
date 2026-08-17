@@ -14,9 +14,7 @@ const groupService = {
   },
 
   createGroup: async (formData) => {
-    const response = await api.post('/network/groups', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/network/groups', formData);
     return response.data;
   },
 
@@ -30,10 +28,98 @@ const groupService = {
     return response.data;
   },
 
+  /**
+   * Get current user's membership status in a group
+   * @param {string} groupId
+   */
+  getMembershipStatus: async (groupId) => {
+    const response = await api.get(`/network/groups/${groupId}/member`);
+    return response.data;
+  },
+
   getGroupMembers: async (groupId, page = 1, limit = 20) => {
     const response = await api.get(`/network/groups/${groupId}/members`, {
       params: { page, limit },
     });
+    return response.data;
+  },
+
+  /**
+   * Remove member from group (group admin only)
+   * @param {string} groupId
+   * @param {string} userId
+   */
+  removeMember: async (groupId, userId) => {
+    const response = await api.delete(`/network/groups/${groupId}/members/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Generate invite link for a group
+   * @param {string} groupId
+   */
+  generateInviteLink: async (groupId) => {
+    const response = await api.post(`/network/groups/${groupId}/invite-link`);
+    return response.data;
+  },
+
+  /**
+   * Join a group via invite link token
+   * @param {string} token
+   */
+  joinViaLink: async (token) => {
+    const response = await api.post('/network/groups/join-via-link', { token });
+    return response.data;
+  },
+
+  /**
+   * View pending join requests (group admin only)
+   * @param {string} groupId
+   */
+  getJoinRequests: async (groupId) => {
+    const response = await api.get(`/network/groups/${groupId}/requests`);
+    return response.data;
+  },
+
+  /**
+   * Respond to a join request (group admin only)
+   * @param {string} groupId
+   * @param {string} requestId
+   * @param {"approve"|"reject"} action
+   */
+  respondToJoinRequest: async (groupId, requestId, action) => {
+    const response = await api.post(
+      `/network/groups/${groupId}/requests/${requestId}/respond`,
+      { action }
+    );
+    return response.data;
+  },
+
+  /**
+   * Like / unlike a group
+   * @param {string} groupId
+   */
+  likeGroup: async (groupId) => {
+    const response = await api.post(`/network/groups/${groupId}/like`);
+    return response.data;
+  },
+
+  /**
+   * Add a comment to a group
+   * @param {string} groupId
+   * @param {string} comment
+   */
+  commentOnGroup: async (groupId, comment) => {
+    const response = await api.post(`/network/groups/${groupId}/comment`, { comment });
+    return response.data;
+  },
+
+  /**
+   * Get comments on a group
+   * @param {string} groupId
+   */
+  getGroupComments: async (groupId) => {
+    const response = await api.get(`/network/groups/${groupId}/comments`);
     return response.data;
   },
 
@@ -46,13 +132,23 @@ const groupService = {
     return response.data;
   },
 
-  createGroupPost: async (groupId, body, images = []) => {
+  /**
+   * Create a post in a group
+   * @param {string} groupId
+   * @param {string} body
+   * @param {File[]} images
+   * @param {File} video
+   */
+  createGroupPost: async (groupId, body, images = [], video = null) => {
     const formData = new FormData();
-    formData.append('body', body);
-    images.forEach((file) => formData.append('postImages[]', file));
-    const response = await api.post(`/network/groups/${groupId}/posts`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    if (body) formData.append('body', body);
+    if (images && images.length > 0) {
+      images.forEach((file) => formData.append('postImages[]', file));
+    }
+    if (video) {
+      formData.append('postVideo', video);
+    }
+    const response = await api.post(`/network/groups/${groupId}/posts`, formData);
     return response.data;
   },
 
@@ -77,14 +173,13 @@ const groupService = {
     return response.data;
   },
 
-   reportGroup: async (groupId, reason, description) => {
+  reportGroup: async (groupId, reason, description) => {
     const response = await api.post(`/network/groups/${groupId}/reports`, {
       reason,
       description,
     });
     return response.data;
   },
-
 };
 
 export default groupService;

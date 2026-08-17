@@ -145,6 +145,23 @@ function PostCard({ post, groupId }) {
             {post.body || post.content}
           </p>
 
+          {/* Video */}
+          {(post.videoUrl || post.video || post.postVideo) && (
+            <div className="mt-3 rounded-xl overflow-hidden bg-black aspect-video max-h-80 flex items-center justify-center shadow-xs">
+              <video
+                src={
+                  (post.videoUrl || post.video || post.postVideo).startsWith("http")
+                    ? post.videoUrl || post.video || post.postVideo
+                    : `${process.env.NEXT_PUBLIC_API_URL}/${post.videoUrl || post.video || post.postVideo}`
+                }
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+
           {/* Images */}
           {hasImages && (
             <div

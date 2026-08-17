@@ -259,7 +259,7 @@ export function ConversationList({
                       </span>
                     </div>
 
-                    <p
+                    <div
                       className={cn(
                         "text-xs sm:text-sm truncate mt-0.5",
                         conversation.unread
@@ -298,7 +298,7 @@ export function ConversationList({
                       ) : (
                         "No messages yet"
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   {/* Unread badge */}

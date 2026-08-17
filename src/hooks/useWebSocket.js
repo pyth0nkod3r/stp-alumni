@@ -15,40 +15,48 @@ export function useWebSocket({ onNewMessage, onTyping, onReadReceipt, onPresence
     const onReadReceiptRef = useRef(onReadReceipt);
     const onPresenceRef = useRef(onPresence);
 
-    // Keep refs in sync on every render
-    useEffect(() => {
-        onNewMessageRef.current = onNewMessage;
-        onTypingRef.current = onTyping;
-        onReadReceiptRef.current = onReadReceipt;
-        onPresenceRef.current = onPresence;
-    });
+    // Keep refs in sync on every render without triggering useEffect loop
+    onNewMessageRef.current = onNewMessage;
+    onTypingRef.current = onTyping;
+    onReadReceiptRef.current = onReadReceipt;
+    onPresenceRef.current = onPresence;
 
+
+    const retryCountRef = useRef(0);
 
     const connect = useCallback(() => {
         if (!token) {
-            console.log("No token available, skipping WebSocket connection");
             return;
         }
 
         try {
-            const ws = new WebSocket("wss://app.gfa-tech.com/ws");
+            const wsUrl =
+                process.env.NEXT_PUBLIC_WS_URL ||
+                (process.env.NEXT_PUBLIC_API_URL
+                    ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, "ws").replace(/\/api\/?$/, "/ws")
+                    : "wss://api.blazingtorrent.org/ws");
+
+            const ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.log("WebSocket connected");
+                retryCountRef.current = 0;
                 // Authenticate immediately after connection
-                ws.send(JSON.stringify({ type: "auth", token }));
+                try {
+                    ws.send(JSON.stringify({ type: "auth", token }));
+                } catch {
+                    // Ignore send error
+                }
             };
 
-          ws.onmessage = (event) => {
+            ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     switch (data.type) {
                         case "authenticated":
                             setIsConnected(true);
-                            console.log("Authenticated:", data.message);
                             break;
                         case "new_message":
-                            onNewMessageRef.current?.(data); // always latest
+                            onNewMessageRef.current?.(data);
                             break;
                         case "typing":
                             onTypingRef.current?.(data);
@@ -60,34 +68,35 @@ export function useWebSocket({ onNewMessage, onTyping, onReadReceipt, onPresence
                             onPresenceRef.current?.(data);
                             break;
                         case "connected":
-                            console.log("Connected to WebSocket, waiting for auth");
                             break;
                         case "message_sent":
-                            console.log("Message sent confirmation:", data);
                             break;
                         default:
-                            console.log("Unknown message type:", data);
+                            break;
                     }
-                } catch (error) {
-                    console.error("WebSocket parse error:", error);
+                } catch {
+                    // Ignore parse error
                 }
             };
 
-            ws.onerror = (error) => {
-                console.error("WebSocket error:", error);
+            ws.onerror = () => {
+                // Silently handle error — fall back to polling & REST
             };
 
-          ws.onclose = (event) => {
-                console.log("WebSocket disconnected:", event.code, event.reason);
+            ws.onclose = () => {
                 setIsConnected(false);
                 if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = setTimeout(connect, 5000);
+                
+                // Exponential backoff up to 60s
+                retryCountRef.current = Math.min(retryCountRef.current + 1, 6);
+                const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 60000);
+                reconnectTimeoutRef.current = setTimeout(connect, delay);
             };
             socketRef.current = ws;
-        } catch (error) {
-            console.error("Failed to create WebSocket:", error);
+        } catch {
+            // Silently fallback
         }
-    }, [token, onNewMessage, onTyping, onReadReceipt, onPresence]);
+    }, [token]);
 
     useEffect(() => {
         connect();

@@ -129,7 +129,7 @@ export function useSendMessage() {
       messagingService.sendMessage(conversationId, content),
 
     onMutate: async ({ conversationId, optimisticMessage }) => {
-      await queryClient.cancelQueries(messagingKeys.messages(conversationId));
+      await queryClient.cancelQueries({ queryKey: messagingKeys.messages(conversationId) });
 
       if (optimisticMessage) {
         appendMessage(conversationId, optimisticMessage);
@@ -142,8 +142,8 @@ export function useSendMessage() {
     },
 
     onSuccess: (_data, { conversationId }) => {
-      queryClient.invalidateQueries(messagingKeys.messages(conversationId));
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.messages(conversationId) });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
     },
 
     onError: (error, { conversationId, optimisticMessage }) => {
@@ -170,8 +170,8 @@ export function useMarkAsRead() {
       return { conversationId };
     },
     onSuccess: (_data, { conversationId }) => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
-      queryClient.invalidateQueries(messagingKeys.messages(conversationId));
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.messages(conversationId) });
     },
   });
 }
@@ -190,7 +190,6 @@ export function useSendMedia() {
       messagingService.uploadMedia(conversationId, formData),
 
     onMutate: async ({ conversationId, optimisticMessage }) => {
-      // ✅ Use the SAME key as useMessages
       const queryKey = messagingKeys.messages(conversationId);
 
       await queryClient.cancelQueries({ queryKey });
@@ -198,27 +197,29 @@ export function useSendMedia() {
       const previousMessages = queryClient.getQueryData(queryKey);
 
       if (optimisticMessage) {
-        // ✅ Update the correct cache entry
         queryClient.setQueryData(queryKey, (old) => {
-          const existing = old?.data ?? [];
-          return { ...old, data: [...existing, optimisticMessage] };
+          const existing = Array.isArray(old?.data)
+            ? old.data
+            : Array.isArray(old)
+            ? old
+            : [];
+          const updated = [...existing, optimisticMessage];
+          return Array.isArray(old) ? updated : { ...old, data: updated };
         });
 
-        // ✅ Also fix conversations key if needed
         queryClient.setQueryData(messagingKeys.conversations, (old) => {
-          if (!old?.data) return old;
-          return {
-            ...old,
-            data: old.data.map(conv =>
-              conv.conversationId === conversationId
-                ? {
+          const list = Array.isArray(old?.data) ? old.data : Array.isArray(old) ? old : [];
+          if (!list.length) return old;
+          const updated = list.map(conv =>
+            conv.conversationId === conversationId
+              ? {
                   ...conv,
                   lastMessage: optimisticMessage.content || "Sent an attachment",
                   lastMessageAt: optimisticMessage.createdAt,
                 }
-                : conv
-            ).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
-          };
+              : conv
+          ).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+          return Array.isArray(old) ? updated : { ...old, data: updated };
         });
       }
 
@@ -226,32 +227,45 @@ export function useSendMedia() {
     },
 
     onSuccess: (response, { conversationId, optimisticMessage }) => {
-      const realMessage = response?.data;
+      const realMessage = response?.data || response;
       const queryKey = messagingKeys.messages(conversationId);
 
-      // ✅ Replace optimistic message with real server data
       queryClient.setQueryData(queryKey, (old) => {
-        return {
-          ...old,
-          data: (old?.data ?? []).map(msg =>
-            // Match by the temp ID we set in optimisticMessage.id
-            msg.id === optimisticMessage.id
-              ? {
+        const existing = Array.isArray(old?.data)
+          ? old.data
+          : Array.isArray(old)
+          ? old
+          : [];
+        const realId = realMessage?.messageId || realMessage?.id || optimisticMessage?.id;
+        const realMediaUrl =
+          realMessage?.mediaPath ||
+          realMessage?.mediaUrl ||
+          realMessage?.fileUrl ||
+          realMessage?.filePath ||
+          realMessage?.attachmentUrl ||
+          realMessage?.attachmentPath ||
+          realMessage?.url ||
+          optimisticMessage?.mediaUrl;
+        const realMediaType = realMessage?.type || realMessage?.mediaType || optimisticMessage?.mediaType;
+
+        const updated = existing.map(msg =>
+          msg.id === optimisticMessage?.id || msg.messageId === optimisticMessage?.id
+            ? {
                 ...optimisticMessage,
-                id: realMessage.messageId,
-                messageId: realMessage.messageId,
-                mediaUrl: realMessage.mediaPath || realMessage.mediaUrl, // Server might return mediaPath
-                mediaType: realMessage.type || realMessage.mediaType,
-                type: realMessage.type,
+                ...realMessage,
+                id: realId,
+                messageId: realId,
+                mediaUrl: realMediaUrl,
+                mediaType: realMediaType,
+                type: realMessage?.type || realMediaType,
                 status: "delivered",
               }
-              : msg
-          )
-        };
+            : msg
+        );
+        return Array.isArray(old) ? updated : { ...old, data: updated };
       });
-      // In useSendMedia onSuccess
-      console.log("Cache after update:", queryClient.getQueryData(messagingKeys.messages(conversationId)));
       queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
 
     onError: (error, { conversationId, optimisticMessage }) => {
@@ -259,15 +273,20 @@ export function useSendMedia() {
 
       if (optimisticMessage) {
         queryClient.setQueryData(queryKey, (old) => {
-          return {
-            ...old,
-            data: (old?.data ?? []).map(msg =>
-              msg.id === optimisticMessage.id ? { ...msg, status: "failed" } : msg
-            )
-          };
+          const existing = Array.isArray(old?.data)
+            ? old.data
+            : Array.isArray(old)
+            ? old
+            : [];
+          const updated = existing.map(msg =>
+            msg.id === optimisticMessage.id || msg.messageId === optimisticMessage.id
+              ? { ...msg, status: "failed" }
+              : msg
+          );
+          return Array.isArray(old) ? updated : { ...old, data: updated };
         });
       }
-      toast.error("Failed to send attachment");
+      toast.error(error?.response?.data?.message || "Failed to send attachment");
       console.error("Send media error:", error);
     },
   });
@@ -288,7 +307,7 @@ export function useDeleteConversation() {
       return { conversationId };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Conversation removed');
     },
     onError: () => {
@@ -305,20 +324,20 @@ export function useDeleteMessage() {
     mutationFn: ({ messageId }) => messagingService.deleteMessage(messageId),
 
     onMutate: async ({ conversationId, messageId }) => {
-      await queryClient.cancelQueries(messagingKeys.messages(conversationId));
+      await queryClient.cancelQueries({ queryKey: messagingKeys.messages(conversationId) });
       // Optimistic removal
       removeMessage(conversationId, messageId);
       return { conversationId, messageId };
     },
 
     onSuccess: (_data, { conversationId }) => {
-      queryClient.invalidateQueries(messagingKeys.messages(conversationId));
+      queryClient.invalidateQueries({ queryKey: messagingKeys.messages(conversationId) });
     },
 
     onError: (error, _vars, context) => {
       // Refetch to restore state on failure
       if (context?.conversationId) {
-        queryClient.invalidateQueries(messagingKeys.messages(context.conversationId));
+        queryClient.invalidateQueries({ queryKey: messagingKeys.messages(context.conversationId) });
       }
       toast.error('Failed to delete message');
     },
@@ -367,12 +386,12 @@ export function useSendInvitation() {
       // refresh conversations
       if (data?.data?.conversationId) {
         console.log(data, "data")
-        queryClient.invalidateQueries(messagingKeys.conversations);
+        queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
         router.push(`/dashboard/messaging?conversationId=${data?.data.conversationId}`);
         // toast.success('Conversation already exists');
       } else {
         toast.success('Invitation sent');
-        queryClient.invalidateQueries(messagingKeys.invitations);
+        queryClient.invalidateQueries({ queryKey: messagingKeys.invitations });
       }
     },
 
@@ -400,8 +419,8 @@ export function useRespondToInvitation() {
       messagingService.respondToInvitation(invitationId, action),
 
     onSuccess: (_data, { action }) => {
-      queryClient.invalidateQueries(messagingKeys.invitations);
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.invitations });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success(action === 'accept' ? 'Invitation accepted' : 'Invitation declined');
     },
 
@@ -437,7 +456,7 @@ export function useCreatePublicGroup() {
   return useMutation({
     mutationFn: (data) => messagingService.createPublicGroup(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Group created');
     },
     onError: (error) => {
@@ -455,7 +474,7 @@ export function useJoinGroup() {
   return useMutation({
     mutationFn: ({ groupId }) => messagingService.joinGroup(groupId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       // If instant join (open group), the response has conversationId
       if (data?.data?.conversationId) {
         toast.success('Joined group');
@@ -491,8 +510,8 @@ export function useRespondToJoinRequest() {
     mutationFn: ({ groupId, requestId, action }) =>
       messagingService.respondToJoinRequest(groupId, requestId, action),
     onSuccess: (_data, { groupId, action }) => {
-      queryClient.invalidateQueries(messagingKeys.joinRequests(groupId));
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.joinRequests(groupId) });
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success(action === 'approve' ? 'Request approved' : 'Request rejected');
     },
     onError: () => {
@@ -511,7 +530,7 @@ export function useUpdateGroupSettings() {
     mutationFn: ({ groupId, data }) =>
       messagingService.updateGroupSettings(groupId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Group settings updated');
     },
     onError: (error) => {
@@ -536,7 +555,7 @@ export function useLeaveGroup() {
     mutationFn: ({ groupId }) => messagingService.leaveGroup(groupId),
     onSuccess: (_data, { groupId }) => {
       removeConversation(groupId);
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Left group');
     },
     onError: (error) => {
@@ -556,7 +575,7 @@ export function useCreatePrivateGroup() {
   return useMutation({
     mutationFn: (data) => messagingService.createPrivateGroup(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Deal room created');
     },
     onError: (error) => {
@@ -575,7 +594,7 @@ export function useInviteToGroup() {
     mutationFn: ({ groupId, userId }) =>
       messagingService.inviteToGroup(groupId, userId),
     onSuccess: (_data, { groupId }) => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Member invited');
     },
     onError: (error) => {
@@ -601,7 +620,7 @@ export function useRemoveMember() {
     mutationFn: ({ groupId, userId }) =>
       messagingService.removeMember(groupId, userId),
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Member removed');
     },
     onError: () => {
@@ -620,7 +639,7 @@ export function useUpdatePrivateGroupSettings() {
     mutationFn: ({ groupId, data }) =>
       messagingService.updatePrivateGroupSettings(groupId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(messagingKeys.conversations);
+      queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
       toast.success('Deal room settings updated');
     },
     onError: (error) => {

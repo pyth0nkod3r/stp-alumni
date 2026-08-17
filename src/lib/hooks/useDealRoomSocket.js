@@ -5,7 +5,11 @@ import { toast } from 'sonner';
 import { dealroomKeys } from './useDealroomQueries';
 import useAuthStore from '@/lib/store/useAuthStore';
 
-const WS_URL = 'wss://app.gfa-tech.com/ws';
+const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  (process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/ws')
+    : 'wss://api.blazingtorrent.org/ws');
 const RECONNECT_DELAY = 3000;
 const MAX_RETRIES = 5;
 

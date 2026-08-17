@@ -6,11 +6,7 @@ const resourceService = {
    * @param {FormData} formData - including title, description, category, resourceFile
    */
   uploadResource: async (formData) => {
-    const response = await api.post('/resources', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/resources', formData);
     return response.data;
   },
 
@@ -24,19 +20,31 @@ const resourceService = {
   },
 
   /**
+   * Delete a resource
+   * @param {string} resourceId
+   */
+  deleteResource: async (resourceId) => {
+    const response = await api.delete(`/resources/${resourceId}`);
+    return response.data;
+  },
+
+  /**
    * Download a resource
    * @param {string} resourceId
    * @param {FormData} formData (optional)
    */
   downloadResource: async (resourceId, formData) => {
-    const config = formData ? {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    } : {};
-    
-    const response = await api.post(`/resources/download/${resourceId}`, formData, config);
+    const response = await api.post(`/resources/download/${resourceId}`, formData);
     return response.data;
+  },
+
+  /**
+   * Get stream URL for a video resource
+   * @param {string} resourceId
+   */
+  getStreamUrl: (resourceId) => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://api.blazingtorrent.org/api';
+    return `${base}/resources/${resourceId}/stream`;
   },
 };
 

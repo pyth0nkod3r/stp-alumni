@@ -51,61 +51,79 @@ function MessageStatus({ status }) {
   }
 }
 
+function normalizeMediaUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+  const cleanPath = url.startsWith("/") ? url.slice(1) : url;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "")
+    : "https://api.blazingtorrent.org";
+  return `${baseUrl}/${cleanPath}`;
+}
+
 function MediaContent({ message }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   if (!message.mediaUrl) return null;
+  const mediaUrl = normalizeMediaUrl(message.mediaUrl);
 
   const isImage =
     message.mediaType === "image" ||
     message.type === "image" ||
-    /\.(jpg|jpeg|png|gif|webp)$/i.test(message.mediaUrl);
+    /\.(jpg|jpeg|png|gif|webp)$/i.test(mediaUrl) ||
+    (!message.mediaType && !/\.(mp4|webm|ogg|mov|pdf|doc|docx|xls|xlsx)$/i.test(mediaUrl));
 
   const isVideo =
     message.mediaType === "video" ||
     message.type === "video" ||
-    /\.(mp4|webm|ogg|mov)$/i.test(message.mediaUrl);
+    /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl);
 
   if (isImage) {
     return (
       <>
         <div 
-          className="relative w-[240px] h-[180px] cursor-pointer group"
+          className="relative w-[240px] max-w-full h-[180px] cursor-pointer group rounded-lg overflow-hidden bg-black/5"
           onClick={() => setLightboxOpen(true)}
         >
           {!imageLoaded && (
-            <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center">
-              <div className="h-8 w-8 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            <div className="absolute inset-0 bg-black/10 animate-pulse flex items-center justify-center z-0">
+              <div className="h-7 w-7 rounded-full border-2 border-white/40 border-t-white animate-spin" />
             </div>
           )}
-          <Image
-            src={message.mediaUrl}
-            alt="Shared image"
-            fill
+          <img
+            src={mediaUrl}
+            alt={message.content || "Shared image"}
             className={cn(
-              "object-cover transition-opacity duration-300",
+              "w-full h-full object-cover transition-opacity duration-200 relative z-10",
               imageLoaded ? "opacity-100" : "opacity-0",
             )}
-            unoptimized={message.mediaUrl.startsWith("blob:")}
             onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
           />
-          {/* ADD - Zoom icon overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          {/* Zoom icon overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center z-20">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-full p-2">
               <ZoomIn className="w-5 h-5 text-white" />
             </div>
           </div>
         </div>
         
-        {/* ADD - Lightbox */}
+        {/* Lightbox */}
         <ImageLightbox
           isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
-          src={message.mediaUrl}
+          src={mediaUrl}
           alt={message.content || "Image"}
-          type={message.mediaType || message.type}
+          type={message.mediaType || message.type || "image"}
         />
       </>
     );
@@ -270,7 +288,7 @@ export function MessageBubble({
           <div className="flex items-end gap-2">
             {message.isOwn && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {isFailed && onRetry && (message.content && message.mediaUrl.length >0) &&(
+                {isFailed && onRetry && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button

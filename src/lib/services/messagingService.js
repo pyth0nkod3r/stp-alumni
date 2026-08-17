@@ -74,8 +74,7 @@ const messagingService = {
   uploadMedia: async (conversationId, formData) => {
     const response = await api.post(
       `/messaging/conversations/${conversationId}/media`,
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      formData
     );
     return response.data;
   },
@@ -136,9 +135,7 @@ const messagingService = {
     formData.append('name', data.name);
     formData.append('description', data.description || '');
     formData.append('isOpen', data.isOpen ?? '1');
-    const response = await api.post('/messaging/groups/public', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/messaging/groups/public', formData);
     return response.data;
   },
 
@@ -216,9 +213,7 @@ const messagingService = {
     formData.append('name', data.name);
     formData.append('description', data.description || '');
     if (data.memberLimit) formData.append('memberLimit', String(data.memberLimit));
-    const response = await api.post('/messaging/groups/private', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/messaging/groups/private', formData);
     return response.data;
   },
 

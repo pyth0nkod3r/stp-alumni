@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 import {
@@ -12,7 +13,17 @@ import {
   Users,
   MoreVertical,
   MapPinHouse,
+  Loader2,
+  UserCheck,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, redirect } from "@/i18n/routing";
 import React, { useState } from "react";
 import { CreateEventModal } from "@/components/(market-events)/CreateEventModal";
@@ -24,6 +35,7 @@ import { toast } from "sonner";
 export default function EventDetail({ params }) {
   const { id } = React.use(params);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isRegistrantsModalOpen, setIsRegistrantsModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -31,12 +43,34 @@ export default function EventDetail({ params }) {
     queryFn: () => eventService.getEventById(id),
   });
 
-  const { mutate, isPending: isRegistering } = useMutation({
-    mutationKey: ["register-vent", id],
-    mutationFn: eventService.registerEvent,
+  const { mutate: register, isPending: isRegistering } = useMutation({
+    mutationKey: ["register-event", id],
+    mutationFn: () => eventService.registerEvent(id),
     onSuccess: () => {
       queryClient.invalidateQueries(["events", id]);
+      toast.success("Successfully registered for event!");
     },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to register for event");
+    },
+  });
+
+  const { mutate: cancelRegistration, isPending: isCancelling } = useMutation({
+    mutationKey: ["cancel-registration", id],
+    mutationFn: () => eventService.cancelRegistration(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["events", id]);
+      toast.success("Registration cancelled successfully");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to cancel registration");
+    },
+  });
+
+  const { data: registrantsData, isLoading: isLoadingRegistrants } = useQuery({
+    queryKey: ["event-registrants", id],
+    queryFn: () => eventService.getEventRegistrants(id),
+    enabled: isRegistrantsModalOpen,
   });
 
   const { data: eventsResponse, isLoading: isPending } = useQuery({
@@ -51,21 +85,25 @@ export default function EventDetail({ params }) {
     .slice(0, 5);
 
   const event = data?.data;
-
-  console.log(event, "event");
+  const registrants = Array.isArray(registrantsData?.data)
+    ? registrantsData.data
+    : Array.isArray(registrantsData)
+    ? registrantsData
+    : [];
 
   const formatEventDateTime = (startTime, endTime) => {
+    if (!startTime) return "";
     const start = new Date(startTime);
-    const end = new Date(endTime);
+    const end = endTime ? new Date(endTime) : null;
+
+    if (!end) return format(start, "MMM d, yyyy, h:mm a");
 
     // Check if same day
     const isSameDay = format(start, "yyyy-MM-dd") === format(end, "yyyy-MM-dd");
 
     if (isSameDay) {
-      // Same day: "Apr 1, 2023, 12:00 AM - 11:59 PM"
       return `${format(start, "MMM d, yyyy, h:mm a")} - ${format(end, "h:mm a")}`;
     } else {
-      // Different days: "Apr 1, 2023, 12:00 AM - Apr 30, 2023, 11:59 PM"
       return `${format(start, "MMM d, yyyy, h:mm a")} - ${format(end, "MMM d, yyyy, h:mm a")}`;
     }
   };
@@ -94,10 +132,11 @@ export default function EventDetail({ params }) {
 
               <div className="p-5 space-y-4">
                 <p className="text-sm text-stp-blue-light font-medium">
-                  {format(
-                    new Date(event.createdAt),
-                    "EEE, MMM d, yyyy, h:mmaa",
-                  )}
+                  {event?.createdAt &&
+                    format(
+                      new Date(event.createdAt),
+                      "EEE, MMM d, yyyy, h:mmaa",
+                    )}
                 </p>
 
                 <h2 className="text-xl lg:text-2xl font-bold">{event?.name}</h2>
@@ -107,7 +146,7 @@ export default function EventDetail({ params }) {
                     Event by
                   </span>
                   <span className="text-sm font-medium text-primary">
-                    {event?.createdByName}
+                    {event?.createdByName || "Organizer"}
                   </span>
                 </div>
 
@@ -118,7 +157,7 @@ export default function EventDetail({ params }) {
                       {formatEventDateTime(event?.startTime, event?.endTime)}
                     </span>
                   </div>
-                  {(event.address || event.venue) && (
+                  {(event?.address || event?.venue) && (
                     <div className="flex items-center gap-3 text-sm">
                       <MapPinHouse className="h-4 w-4 text-stp-blue-light" />
                       <span>
@@ -127,41 +166,72 @@ export default function EventDetail({ params }) {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3 text-sm capitalize">
-                    <Video className="h-4 w-4 text-stp-blue-light" />
-                    <span>{event.type}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <ExternalLink className="h-4 w-4 text-stp-blue-light" />
-                    <span className="text-muted-foreground">Event link: </span>
-                    <a
-                      href={event.externalLink}
-                      className="text-primary hover:underline truncate max-w-[200px]"
-                    >
-                      {event?.externalLink ||
-                        "https://meet.google.com/tgr-ghd-lkj"}
-                    </a>
-                  </div>
+                  {event?.type && (
+                    <div className="flex items-center gap-3 text-sm capitalize">
+                      <Video className="h-4 w-4 text-stp-blue-light" />
+                      <span>{event.type}</span>
+                    </div>
+                  )}
+
+                  {event?.externalLink && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <ExternalLink className="h-4 w-4 text-stp-blue-light" />
+                      <span className="text-muted-foreground">Event link: </span>
+                      <a
+                        href={event.externalLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline truncate max-w-[250px]"
+                      >
+                        {event.externalLink}
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">
+                  <span className="text-sm text-muted-foreground">
                     {event?.attendeeCount || 0} attendees
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  {!event?.isRegistered ? (
+                    <Button
+                      className="bg-stp-blue-light text-primary-foreground hover:bg-primary/90 rounded-2xl"
+                      disabled={isRegistering}
+                      onClick={() => register()}
+                    >
+                      {isRegistering ? "Registering..." : "Attend Event"}
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        disabled
+                        className="rounded-2xl bg-emerald-50 text-emerald-700 font-medium"
+                      >
+                        ✓ Registered
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                        disabled={isCancelling}
+                        onClick={() => cancelRegistration()}
+                      >
+                        {isCancelling ? "Cancelling..." : "Cancel Registration"}
+                      </Button>
+                    </div>
+                  )}
+
                   <Button
-                    className="bg-stp-blue-light text-primary-foreground hover:bg-primary/90 rounded-2xl"
-                    disabled={isRegistering || event.isRegistered}
-                    onClick={() => mutate(id)
-                    }
+                    variant="outline"
+                    className="rounded-2xl text-[#233389] border-[#233389]/30 hover:bg-[#233389]/10"
+                    onClick={() => setIsRegistrantsModalOpen(true)}
                   >
-                    {event.isRegistered ? "Registered" : "Attend"}
+                    <Users className="h-4 w-4 mr-2" />
+                    View Registrants ({event?.attendeeCount || 0})
                   </Button>
-                  {/* <Button variant="outline" size="icon" className="rounded-full">
-                    <Share2 className="h-4 w-4" />
-                  </Button> */}
                 </div>
               </div>
             </div>
@@ -225,6 +295,70 @@ export default function EventDetail({ params }) {
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
       />
+
+      {/* ── View Registrants Modal ── */}
+      <Dialog open={isRegistrantsModalOpen} onOpenChange={setIsRegistrantsModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-[#233389] flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Event Registrants ({registrants.length})
+            </DialogTitle>
+            <DialogDescription>
+              Attendees who registered for this event.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-3 py-2">
+            {isLoadingRegistrants ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-[#233389]" />
+              </div>
+            ) : registrants.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">
+                <UserCheck className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                No registrants yet.
+              </div>
+            ) : (
+              registrants.map((reg, idx) => {
+                const name = reg.name || `${reg.firstName || ""} ${reg.lastName || ""}`.trim() || reg.user?.name || "Attendee";
+                const email = reg.email || reg.user?.email || "";
+                const avatarUrl = reg.profileImagePath || reg.avatar || reg.user?.profileImagePath;
+                const regDate = reg.registeredAt || reg.createdAt;
+
+                return (
+                  <div
+                    key={reg.id || reg.userId || idx}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 border border-gray-100"
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={avatarUrl} alt={name} />
+                      <AvatarFallback className="bg-blue-50 text-[#233389] font-medium text-xs">
+                        {name.charAt(0) || "A"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {name}
+                      </p>
+                      {email && (
+                        <p className="text-xs text-gray-500 truncate">
+                          {email}
+                        </p>
+                      )}
+                    </div>
+                    {regDate && (
+                      <span className="text-[11px] text-gray-400 shrink-0">
+                        {format(new Date(regDate), "MMM d")}
+                      </span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

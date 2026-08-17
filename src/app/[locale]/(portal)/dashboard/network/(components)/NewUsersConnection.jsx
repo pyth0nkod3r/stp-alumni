@@ -96,6 +96,18 @@ function NewUsersConnection({ connection, index, connectionTotal }) {
     },
   });
 
+  const { mutate: disconnectUser, isPending: isDisconnecting } = useMutation({
+    mutationFn: (connId) => networkService.disconnectUser(connId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["network"] });
+      queryClient.invalidateQueries({ queryKey: ["connections"] });
+      toast.success("Disconnected successfully");
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Failed to disconnect");
+    },
+  });
+
   // Action handlers
   const handleConnect = () => {
     if (isNotConnected) {
@@ -107,13 +119,10 @@ function NewUsersConnection({ connection, index, connectionTotal }) {
   };
 
   const handleRemoveConnection = () => {
-    // Implement remove connection logic
-    toast.info("Remove connection functionality to be implemented");
-  };
-
-  const handleViewProfile = () => {
-    // Optional: navigate to profile
-    // router.push(`/dashboard/profile/${connection.userId}`);
+    const connId = connection.connectionId || connection.id || connection.userId;
+    if (connId) {
+      disconnectUser(connId);
+    }
   };
 
   // Get button configuration based on connection status
@@ -134,6 +143,8 @@ function NewUsersConnection({ connection, index, connectionTotal }) {
         return () => {};
     }
   };
+
+  const isAlreadyConnected = connectionStatus === "ACCEPTED" || isConnected;
 
   return (
     <div
@@ -164,46 +175,65 @@ function NewUsersConnection({ connection, index, connectionTotal }) {
           </p>
           <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
             {connection.connectedSince ||
-              (isConnected ? "Available on STP" : "Recently added")}
+              (isAlreadyConnected ? "Connected" : "Available on STP")}
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0 ml-2">
         {/* Main Action Button */}
-        <Button
-          variant={"default"}
-          size="sm"
-          disabled={buttonConfig.disabled}
-          className={"rounded-2xl"}
-          onClick={getButtonClickHandler()}
-        >
-          {buttonConfig.icon}
-          <span className="hidden sm:inline">{buttonConfig.text}</span>
-        </Button>
+        {!isAlreadyConnected ? (
+          <Button
+            variant={"default"}
+            size="sm"
+            disabled={buttonConfig.disabled}
+            className={"rounded-2xl bg-[#233389] hover:bg-[#1a2866] text-white"}
+            onClick={getButtonClickHandler()}
+          >
+            {buttonConfig.icon}
+            <span className="hidden sm:inline">{buttonConfig.text}</span>
+          </Button>
+        ) : (
+          <Link href={`/dashboard/messages?recipientId=${connection.userId}`}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-2xl border-[#233389] text-[#233389] hover:bg-[#233389]/10"
+            >
+              <MessageCircle className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">Message</span>
+            </Button>
+          </Link>
+        )}
 
         {/* Dropdown Menu */}
-        {/* <DropdownMenu>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <EllipsisVertical className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <EllipsisVertical className="h-4 w-4 text-gray-500" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleViewProfile}>
-              View Profile
+          <DropdownMenuContent align="end" className="w-44 rounded-xl">
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/dashboard/profile/${connection.userId}`}
+                className="cursor-pointer"
+              >
+                View Profile
+              </Link>
             </DropdownMenuItem>
-            {isConnected && (
+            {isAlreadyConnected && (
               <DropdownMenuItem
-                className="text-destructive"
+                className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                disabled={isDisconnecting}
                 onClick={handleRemoveConnection}
               >
                 <UserMinus className="h-4 w-4 mr-2" />
-                Remove Connection
+                Disconnect
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
-        </DropdownMenu> */}
+        </DropdownMenu>
       </div>
     </div>
   );

@@ -1,16 +1,14 @@
 
 
-import React from 'react'
-
+import React from 'react';
 import { useState, useRef } from "react";
 import {
-
   FileText,
- 
   Upload,
-
+  Download,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
-
 import {
   Dialog,
   DialogContent,
@@ -18,11 +16,27 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import dealroomService from "@/lib/services/dealroomService";
 
 function DocumentsModal({ open, onOpenChange, room, onUploadFile }) {
   const fileInputRef = useRef(null);
   const [uploadProgress, setUploadProgress] = useState(null);
-  const documents = room?.documents || [];
+  const roomId = room?.roomId || room?.id;
+
+  const { data: filesData, isLoading: isLoadingFiles, refetch } = useQuery({
+    queryKey: ["dealroom-files", roomId],
+    queryFn: () => dealroomService.getFiles(roomId),
+    enabled: !!roomId && open,
+  });
+
+  const rawDocs = Array.isArray(filesData?.data)
+    ? filesData.data
+    : Array.isArray(filesData)
+    ? filesData
+    : room?.documents || [];
+
+  const documents = rawDocs;
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -88,38 +102,61 @@ function DocumentsModal({ open, onOpenChange, room, onUploadFile }) {
           )}
 
           {/* Document list */}
-          {documents.length === 0 ? (
+          {isLoadingFiles ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[#233389]" />
+            </div>
+          ) : documents.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-40" />
               <p className="text-sm text-muted-foreground">No documents yet.</p>
             </div>
           ) : (
             <ul className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {documents.map((doc) => (
-                <li
-                  key={doc.id || doc.fileId || doc.name}
-                  className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-stp-blue-light/10 flex items-center justify-center shrink-0">
-                    <FileText className="h-4 w-4 text-stp-blue-light" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {doc.name || doc.fileName}
-                    </p>
-                    {doc.streamUrl && (
+              {documents.map((doc) => {
+                const fileUrl = doc.url || doc.fileUrl || doc.filePath || doc.streamUrl;
+                const fileName = doc.name || doc.fileName || doc.title || "Document";
+
+                return (
+                  <li
+                    key={doc.id || doc.fileId || fileName}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5 bg-gray-50/50"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                        <FileText className="h-4 w-4 text-[#233389]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {fileName}
+                        </p>
+                        {doc.createdAt && (
+                          <p className="text-[10px] text-gray-400">
+                            {new Date(doc.createdAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {fileUrl && (
                       <a
-                        href={doc.streamUrl}
+                        href={
+                          fileUrl.startsWith("http")
+                            ? fileUrl
+                            : `${process.env.NEXT_PUBLIC_API_URL}/${fileUrl}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-stp-blue-light hover:underline"
+                        download
+                        className="p-1.5 rounded-lg text-[#233389] hover:bg-[#233389]/10 transition-colors"
+                        title="Download file"
                       >
-                        View / Stream
+                        <Download className="h-4 w-4" />
                       </a>
                     )}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -11,6 +11,7 @@ import userService from "@/lib/services/userService";
 
 import ProfileTab from "./ProfileTab";
 import MyPostsTab from "./PostTab";
+import SavedPostsTab from "./SavedPostsTab";
 import SecurityTab from "./SecurityTab";
 import PreferencesTab from "./PreferenceTab";
 
@@ -187,8 +188,8 @@ export default function SettingsPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="profile">{t("profileTab")}</TabsTrigger>
           <TabsTrigger value="posts">{t("myPostsTab")}</TabsTrigger>
+          <TabsTrigger value="saved">Saved Posts</TabsTrigger>
           <TabsTrigger value="security">{t("securityTab")}</TabsTrigger>
-          {/* New tab */}
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
@@ -205,6 +206,10 @@ export default function SettingsPage() {
 
         <TabsContent value="posts">
           <MyPostsTab t={t} />
+        </TabsContent>
+
+        <TabsContent value="saved">
+          <SavedPostsTab t={t} />
         </TabsContent>
 
         <TabsContent value="security">

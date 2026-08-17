@@ -45,11 +45,19 @@ const networkService = {
     return response.data;
   },
 
-    getIncomingRequests: async (params = {}) => {
+  getIncomingRequests: async (params = {}) => {
     const response = await api.get('/connections/requests', { params });
     return response.data;
   },
 
+  /**
+   * Disconnect / remove connection
+   * @param {string} connectionId
+   */
+  disconnectUser: async (connectionId) => {
+    const response = await api.delete(`/connections/${connectionId}`);
+    return response.data;
+  },
 };
 
 export default networkService;
