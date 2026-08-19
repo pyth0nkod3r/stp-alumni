@@ -6,7 +6,7 @@ import { Calendar, ShoppingBag, ChevronRight, Globe, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 import { useNavbar } from "@/contexts/NavbarContext";
-import { usePostsFeed, useLikePost } from "@/lib/hooks/usePosts";
+import { usePostsFeed, useLikePost, useToggleSaveFeedPost } from "@/lib/hooks/usePosts";
 import CreatePost from "@/components/posts/CreatePost";
 import PostCard from "@/components/posts/PostCard";
 import PostSkeleton from "@/components/posts/PostSkeleton";
@@ -22,6 +22,7 @@ export default function DashboardPage() {
   // Use the original hook
   const { data: posts, isLoading, error, refetch } = usePostsFeed();
   const { mutate: likePost } = useLikePost(data?.userId || "");
+  const { mutate: toggleSavePost } = useToggleSaveFeedPost();
   
   // Client-side pagination state
   const [visibleCount, setVisibleCount] = useState(5);
@@ -51,8 +52,7 @@ export default function DashboardPage() {
   };
 
   const handleSave = (postId) => {
-    console.log("Save post:", postId);
-    toast.success("Post saved!");
+    toggleSavePost(postId);
   };
 
   const handleCopyLink = (postId) => {

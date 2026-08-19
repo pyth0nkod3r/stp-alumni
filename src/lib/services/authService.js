@@ -7,7 +7,7 @@ const authService = {
   },
 
   getProfile: async () => {
-    const response = await api.get('/auth/me');
+    const response = await api.get('/users/profile');
     return response.data;
   },
 

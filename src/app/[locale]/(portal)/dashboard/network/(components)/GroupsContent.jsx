@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link as NavLink } from "@/i18n/routing";
-import { DoorOpen, EllipsisVertical, Link, LogOut,Plus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { DoorOpen, EllipsisVertical, Link, LogOut, Plus, UserPlus } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useUser";
 import CreateGroupModal from "./CreateGroupModal";
+import JoinGroupModal from "./JoinGroupModal";
 
 // --- Component level handlers ---
 
@@ -162,6 +164,18 @@ export function GroupsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [inviteToken, setInviteToken] = useState("");
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const invite = searchParams?.get("invite") || searchParams?.get("token");
+    if (invite) {
+      setInviteToken(invite);
+      setIsJoinModalOpen(true);
+    }
+  }, [searchParams]);
 
   const { data } = useAuth();
 
@@ -261,13 +275,23 @@ export function GroupsContent() {
           sortPlaceholder="All"
           selectWidth="w-25"
           headerExtra={
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-[#155DFC] hover:bg-[#155DFC]/90 text-white rounded-full px-4 h-9 text-sm font-medium gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Create Group</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsJoinModalOpen(true)}
+                className="rounded-full px-3.5 h-9 text-sm font-medium gap-1.5 border-stp-blue-light text-stp-blue-light hover:bg-stp-blue-light/10"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Join with Link</span>
+              </Button>
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-[#155DFC] hover:bg-[#155DFC]/90 text-white rounded-full px-4 h-9 text-sm font-medium gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Create Group</span>
+              </Button>
+            </div>
           }
         >
         {currentGroups.length > 0 ? currentGroups.map((group) => (
@@ -389,6 +413,11 @@ export function GroupsContent() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onCreateSuccess={handleGroupCreated}
+      />
+      <JoinGroupModal
+        open={isJoinModalOpen}
+        onOpenChange={setIsJoinModalOpen}
+        initialToken={inviteToken}
       />
     </>
   );

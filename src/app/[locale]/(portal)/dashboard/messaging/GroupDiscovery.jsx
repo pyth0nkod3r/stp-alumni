@@ -133,8 +133,12 @@ export function GroupDiscovery({ onClose, onGroupJoined }) {
         ) : (
           <div className="divide-y divide-border">
             {groups.map((group) => {
-              const id = group.conversationId || group.id;
-              const isOpen = group.isOpen === 1 || group.isOpen === "1" || group.isOpen === true;
+              const id = group.groupId || group.conversationId || group.id;
+              const isOpen =
+                group.privacyMode === "PUBLIC" ||
+                group.isOpen === 1 ||
+                group.isOpen === "1" ||
+                group.isOpen === true;
               const memberCount = group.memberCount || group.participants?.length || 0;
               const isMember = group.isMember || false;
 

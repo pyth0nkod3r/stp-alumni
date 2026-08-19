@@ -124,18 +124,18 @@ const messagingService = {
     return response.data;
   },
 
-  // ─── PUBLIC GROUPS ─────────────────────────────────────────────
+  // ─── PUBLIC GROUPS (Network Groups) ───────────────────────────
 
   /**
    * Create a public group.
-   * @param {Object} data - { name, description, isOpen: "1"|"0" }
+   * @param {Object} data - { name, description, privacyMode }
    */
   createPublicGroup: async (data) => {
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('description', data.description || '');
-    formData.append('isOpen', data.isOpen ?? '1');
-    const response = await api.post('/messaging/groups/public', formData);
+    formData.append('privacyMode', data.privacyMode || (data.isOpen === "0" ? "CLOSED" : "PUBLIC"));
+    const response = await api.post('/network/groups', formData);
     return response.data;
   },
 
@@ -144,16 +144,18 @@ const messagingService = {
    * @param {Object} params - { search?, page?, limit? }
    */
   searchPublicGroups: async (params = {}) => {
-    const response = await api.get('/messaging/groups/public', { params });
+    const response = await api.get('/network/groups', { params });
     return response.data;
   },
 
   /**
-   * Join a public group (instant for open, request for closed).
+   * Join a public group.
    * @param {string} groupId
    */
   joinGroup: async (groupId) => {
-    const response = await api.post(`/messaging/groups/${groupId}/join`);
+    const response = await api.post(`/network/groups/${groupId}/member`, {
+      action: 'JOIN',
+    });
     return response.data;
   },
 
@@ -162,7 +164,7 @@ const messagingService = {
    * @param {string} groupId
    */
   getJoinRequests: async (groupId) => {
-    const response = await api.get(`/messaging/groups/${groupId}/requests`);
+    const response = await api.get(`/network/groups/${groupId}/requests`);
     return response.data;
   },
 
@@ -174,8 +176,8 @@ const messagingService = {
    */
   respondToJoinRequest: async (groupId, requestId, action) => {
     const response = await api.post(
-      `/messaging/groups/${groupId}/requests/${requestId}/respond`,
-      { action }
+      `/network/groups/${groupId}/requests/${requestId}/respond`,
+      { action: action === "ACCEPT" ? "approve" : action === "REJECT" ? "reject" : action }
     );
     return response.data;
   },
@@ -185,18 +187,20 @@ const messagingService = {
    * @param {string} groupId
    */
   leaveGroup: async (groupId) => {
-    const response = await api.post(`/messaging/groups/${groupId}/leave`);
+    const response = await api.post(`/network/groups/${groupId}/member`, {
+      action: 'LEAVE',
+    });
     return response.data;
   },
 
   /**
    * Update public group settings (admin only).
    * @param {string} groupId
-   * @param {Object} data - { name?, description?, isOpen? }
+   * @param {Object} data - { name?, description? }
    */
   updateGroupSettings: async (groupId, data) => {
     const response = await api.patch(
-      `/messaging/groups/${groupId}/settings`,
+      `/network/groups/${groupId}`,
       data
     );
     return response.data;
@@ -206,50 +210,48 @@ const messagingService = {
 
   /**
    * Create a private group (deal room).
-   * @param {Object} data - { name, description, memberLimit? }
+   * @param {Object} data - { title, description }
    */
   createPrivateGroup: async (data) => {
-    const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('description', data.description || '');
-    if (data.memberLimit) formData.append('memberLimit', String(data.memberLimit));
-    const response = await api.post('/messaging/groups/private', formData);
-    return response.data;
-  },
-
-  /**
-   * Invite a user to a private group (admin only).
-   * @param {string} groupId
-   * @param {string} userId
-   */
-  inviteToGroup: async (groupId, userId) => {
-    const response = await api.post(`/messaging/groups/${groupId}/invite`, {
-      userId,
+    const response = await api.post('/dealrooms', {
+      title: data.name || data.title,
+      description: data.description || '',
     });
     return response.data;
   },
 
   /**
-   * Remove a member from a private group (admin only).
-   * @param {string} groupId
+   * Invite a user to a private group (dealroom).
+   * @param {string} roomId
    * @param {string} userId
    */
-  removeMember: async (groupId, userId) => {
-    const response = await api.post(
-      `/messaging/groups/${groupId}/members/remove`,
-      { userId }
+  inviteToGroup: async (roomId, userId) => {
+    const response = await api.post(`/dealrooms/${roomId}/members`, {
+      userIds: [userId],
+    });
+    return response.data;
+  },
+
+  /**
+   * Remove a member from a private group (dealroom).
+   * @param {string} roomId
+   * @param {string} userId
+   */
+  removeMember: async (roomId, userId) => {
+    const response = await api.delete(
+      `/dealrooms/${roomId}/members/${userId}`
     );
     return response.data;
   },
 
   /**
-   * Update private group settings (admin only).
-   * @param {string} groupId
-   * @param {Object} data - { name?, memberLimit? }
+   * Update private group settings.
+   * @param {string} roomId
+   * @param {Object} data
    */
-  updatePrivateGroupSettings: async (groupId, data) => {
+  updatePrivateGroupSettings: async (roomId, data) => {
     const response = await api.patch(
-      `/messaging/groups/${groupId}/settings`,
+      `/dealrooms/${roomId}`,
       data
     );
     return response.data;
