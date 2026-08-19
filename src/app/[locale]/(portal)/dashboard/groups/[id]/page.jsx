@@ -23,6 +23,7 @@ import {
   Loader2,
   UserCheck,
   UserPlus,
+  Heart,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -196,7 +197,7 @@ function JoinRequestsModal({ open, onOpenChange, groupId }) {
       groupService.respondToJoinRequest(groupId, requestId, action),
     onSuccess: (_, vars) => {
       toast.success(
-        vars.action === "ACCEPT" ? "Join request accepted" : "Join request rejected"
+        vars.action === "approve" ? "Join request approved" : "Join request rejected"
       );
       queryClient.invalidateQueries({ queryKey: ["group-join-requests", groupId] });
       queryClient.invalidateQueries({ queryKey: ["group-members", groupId] });
@@ -267,10 +268,10 @@ function JoinRequestsModal({ open, onOpenChange, groupId }) {
                         className="h-7 text-xs bg-[#233389] hover:bg-[#1a2866] text-white rounded-lg"
                         disabled={isResponding}
                         onClick={() =>
-                          respondToRequest({ requestId: reqId, action: "ACCEPT" })
+                          respondToRequest({ requestId: reqId, action: "approve" })
                         }
                       >
-                        Accept
+                        Approve
                       </Button>
                       <Button
                         size="sm"
@@ -278,7 +279,7 @@ function JoinRequestsModal({ open, onOpenChange, groupId }) {
                         className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 rounded-lg"
                         disabled={isResponding}
                         onClick={() =>
-                          respondToRequest({ requestId: reqId, action: "REJECT" })
+                          respondToRequest({ requestId: reqId, action: "reject" })
                         }
                       >
                         Decline
@@ -337,6 +338,17 @@ export default function GroupDetailView({ params }) {
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || "Failed to generate invite link");
+    },
+  });
+
+  const { mutate: toggleLikeGroup, isPending: isLikingGroup } = useMutation({
+    mutationFn: () => groupService.likeGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", id] });
+      toast.success("Group like updated");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to like group");
     },
   });
 
@@ -422,7 +434,19 @@ export default function GroupDetailView({ params }) {
 
               <CardContent className="pt-3">
                 {/* Actions row */}
-                <div className="flex items-center justify-end gap-1 mb-2">
+                <div className="flex items-center justify-end gap-1.5 mb-2">
+                  {/* Like button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`rounded-full gap-1.5 text-xs transition-colors ${group?.isLiked ? "text-red-600 border-red-200 bg-red-50/50 hover:bg-red-50" : ""}`}
+                    disabled={isLikingGroup}
+                    onClick={() => toggleLikeGroup()}
+                  >
+                    <Heart className={`h-3.5 w-3.5 ${group?.isLiked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+                    <span>{group?.likeCount ?? group?.likesCount ?? 0}</span>
+                  </Button>
+
                   {/* Join/Leave button */}
                   {isMember ? (
                     <Button

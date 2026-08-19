@@ -137,50 +137,41 @@ function BusinessForm({
       return;
     }
 
-    let uploadedImageUrl;
-    if (profileImage) {
-      uploadedImageUrl = await handleProfileImgSubmit(profileImage);
+    // Prepare payload as FormData (multipart/form-data)
+    const formData = new FormData();
+
+    if (personalData.location) formData.append("location", personalData.location);
+    if (personalData.cohort) formData.append("cohort", personalData.cohort);
+    if (personalData.linkedInProfile) formData.append("linkedInProfile", personalData.linkedInProfile);
+    if (personalData.goals) formData.append("goals", personalData.goals);
+    if (personalData.title || personalData.jobTitle) formData.append("title", personalData.title || personalData.jobTitle);
+
+    if (Array.isArray(personalData.sectors)) {
+      personalData.sectors.forEach((s) => formData.append("sector[]", s));
+    }
+    if (Array.isArray(personalData.skills)) {
+      personalData.skills.forEach((s) => formData.append("skills[]", s));
     }
 
-    console.log(uploadedImageUrl, "uploadedImageUrl");
+    if (businessData.companyName) formData.append("companyName", businessData.companyName);
+    if (businessData.businessModel) formData.append("businessModel", businessData.businessModel);
+    if (businessData.companyStage) formData.append("companyStage", businessData.companyStage);
+    if (businessData.elevatorPitch) formData.append("elevatorPitch", businessData.elevatorPitch);
+    if (businessData.visibility) formData.append("contactVisibility", businessData.visibility);
+    if (businessData.companyWebsite) formData.append("companyWebsite", businessData.companyWebsite);
 
-    // Prepare payload as JSON object
-    const payload = {
-      // Personal info
-      sector: personalData.sectors,
-      location: personalData.location,
-      skills: personalData.skills,
-      linkedInProfile: personalData.linkedInProfile,
-      goals: personalData.goals,
-      cohort: personalData.cohort,
-      profile_image_path: uploadedImageUrl,
-      title: personalData.title,
+    if (Array.isArray(businessData.offers)) {
+      businessData.offers.forEach((o) => formData.append("offers[]", o));
+    }
+    if (Array.isArray(businessData.needs)) {
+      businessData.needs.forEach((n) => formData.append("needs[]", n));
+    }
 
-      // Business info
-      companyName: businessData.companyName,
-      businessModel: businessData.businessModel,
-      companyStage: businessData.companyStage,
-      elevatorPitch: businessData.elevatorPitch,
-      offers: businessData.offers,
-      needs: businessData.needs,
-      contactVisibility: businessData.visibility,
-      companyWebsite: businessData.companyWebsite,
-    };
+    if (profileImage instanceof File) {
+      formData.append("profileImage", profileImage);
+    }
 
-    // Remove undefined/null values
-    Object.keys(payload).forEach((key) => {
-      if (
-        payload[key] === undefined ||
-        payload[key] === null ||
-        payload[key] === ""
-      ) {
-        delete payload[key];
-      }
-    });
-
-    setupMutation.mutate(payload);
-
-    console.log(payload, "payload");
+    setupMutation.mutate(formData);
   };
   return (
     <form className="space-y-4">

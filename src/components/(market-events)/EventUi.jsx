@@ -29,6 +29,11 @@ export default function EventUi() {
     queryFn: eventService.getEvents,
   });
 
+  const { data: myEventsResponse, isLoading: isMyEventsLoading } = useQuery({
+    queryKey: ["my-events"],
+    queryFn: eventService.getMyEvents,
+  });
+
   // Safely extract the events array from various possible backend structures
   let allEvents = [];
   if (Array.isArray(eventsResponse)) {
@@ -43,16 +48,21 @@ export default function EventUi() {
     }
   }
 
-  // Currently we use all events as "Your events" and "Recommended" if there's no backend toggle
-  // Wait, let's keep all events in recommended, and if there's no "your events" from API, empty it out or keep it mirrored for now to test.
-  // We'll place all fetched events in recommended to be safe.
-  const yourEventsStatic = []; // If you have a true way to filter "my" events, do it here
-  
+  let myEvents = [];
+  if (Array.isArray(myEventsResponse)) {
+    myEvents = myEventsResponse;
+  } else if (myEventsResponse?.data) {
+    myEvents = Array.isArray(myEventsResponse.data)
+      ? myEventsResponse.data
+      : Array.isArray(myEventsResponse.data.events)
+      ? myEventsResponse.data.events
+      : [];
+  }
+
   const displayedYourEvents = showAllYourEvents
-    ? yourEventsStatic
-    : yourEventsStatic.slice(0, 3);
+    ? myEvents
+    : myEvents.slice(0, 3);
     
-    console.log(displayedYourEvents,"post")
   const displayedRecommendedEvents = allEvents.slice(
     0,
     recommendedPage * ITEMS_PER_PAGE,
@@ -76,7 +86,7 @@ export default function EventUi() {
                 isAuth={isAuth}
                 yourEventsData={{
                   list: displayedYourEvents,
-                  total: yourEventsStatic.length,
+                  total: myEvents.length,
                   isExpanded: showAllYourEvents,
                   toggle: () => setShowAllYourEvents(!showAllYourEvents),
                 }}
@@ -100,7 +110,7 @@ export default function EventUi() {
               isShow={isShow}
               yourEventsData={{
                 list: displayedYourEvents,
-                total: yourEventsStatic.length,
+                total: myEvents.length,
                 isExpanded: showAllYourEvents,
                 toggle: () => setShowAllYourEvents(!showAllYourEvents),
               }}
@@ -158,7 +168,7 @@ function EventListContent({
           <h2 className="text-sm font-semibold mb-4">Your events</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {yourEventsData.list.map((event) => (
-              <YourEventCard key={event.id} event={event} />
+              <YourEventCard key={event.eventId || event.id} event={event} />
             ))}
           </div>
 

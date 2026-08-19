@@ -598,8 +598,15 @@ export default function ResourcesPage() {
                       )}
 
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (resource.resourceFileUrl) {
+                            try {
+                              if (resId) {
+                                await resourceService.downloadResource(resId);
+                              }
+                            } catch (err) {
+                              console.error("Failed to log download:", err);
+                            }
                             const link = document.createElement("a");
                             link.href = resource.resourceFileUrl;
                             link.download = resource.title || "download";
