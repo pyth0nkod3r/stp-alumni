@@ -363,14 +363,14 @@ export function DealRoomView({
         <div className="max-w-3xl mx-auto">
           <div className="flex items-end gap-2 bg-muted/50 rounded-2xl px-3 py-2 border border-border focus-within:border-stp-blue-light/40 transition-colors">
             {/* File attach */}
-            {/* <button
+            <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="h-8 w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shrink-0 pb-0.5"
               title="Attach file"
             >
               <Paperclip className="h-4 w-4" />
-            </button> */}
+            </button>
             <input
               ref={fileInputRef}
               type="file"

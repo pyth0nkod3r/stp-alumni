@@ -2,6 +2,7 @@
 "use client";
 
 import useAuthStore from "@/lib/store/useAuthStore";
+import usePresenceStore from "@/lib/store/usePresenceStore";
 import { useEffect, useRef, useCallback, useState } from "react";
 
 export function useWebSocket({ onNewMessage, onTyping, onReadReceipt, onPresence } = {}) {
@@ -65,6 +66,7 @@ export function useWebSocket({ onNewMessage, onTyping, onReadReceipt, onPresence
                             onReadReceiptRef.current?.(data);
                             break;
                         case "presence":
+                            usePresenceStore.getState().setPresence(data.userId, data.status);
                             onPresenceRef.current?.(data);
                             break;
                         case "connected":

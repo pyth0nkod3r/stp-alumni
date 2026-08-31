@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { dealroomKeys } from './useDealroomQueries';
 import useAuthStore from '@/lib/store/useAuthStore';
+import usePresenceStore from '@/lib/store/usePresenceStore';
 
 const WS_URL =
   process.env.NEXT_PUBLIC_WS_URL ||
@@ -56,6 +57,7 @@ function getSocket(token, onOpen) {
 
     // Route presence events to all
     if (data.type === 'presence') {
+      usePresenceStore.getState().setPresence(data.userId, data.status);
       presenceListeners.forEach((fn) => fn(data));
     }
   });

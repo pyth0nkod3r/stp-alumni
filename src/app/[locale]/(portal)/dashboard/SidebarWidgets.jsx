@@ -24,6 +24,8 @@ import { format } from "date-fns";
 import { Link } from "@/i18n/routing";
 import { useRouter } from "next/navigation";
 import { useSendInvitation } from "@/lib/hooks/useMessagingQueries";
+import SuggestedConnections from "@/components/shared/SuggestedConnections";
+import usePresenceStore from "@/lib/store/usePresenceStore";
 
 function SidebarWidgets({ t, height }) {
   const router = useRouter();
@@ -190,6 +192,8 @@ function SidebarWidgets({ t, height }) {
               <Link href="/dashboard/messaging">{t("seeMore")}</Link>
             </button>
           </div>
+
+          <SuggestedConnections />
         </div>
       </ModernScrollArea>
     </aside>
@@ -302,6 +306,7 @@ function InvitationItem({ invitation, index }) {
 
 function ConnectedUser({ contact, index }) {
   const { mutate: sendInvitation, isPending: isSending } = useSendInvitation();
+  const isOnline = usePresenceStore((s) => s.isOnline(contact.userId));
 
   const handleMessage = (userId) => {
     sendInvitation({
@@ -313,7 +318,7 @@ function ConnectedUser({ contact, index }) {
     <div key={contact.userId || index} className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden shrink-0">
+          <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden shrink-0 relative">
             <Image
               src={contact.profileImagePath || "/assets/Your Newtork Image.jpg"}
               alt={contact.name || contact.firstName || "User"}
@@ -321,6 +326,9 @@ function ConnectedUser({ contact, index }) {
               height={40}
               className="h-full w-full object-cover"
             />
+            {isOnline && (
+              <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
+            )}
           </div>
           <div className="min-w-0">
             <Link

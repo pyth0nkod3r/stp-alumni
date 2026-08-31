@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { ArrowUpRight, Briefcase, GraduationCap, MapPin, Search, Users } from "lucide-react";
@@ -39,6 +39,15 @@ export default function MarketplaceUi() {
   const updateFilter = (key, value) =>
     setFilters((prev) => ({ ...prev, [key]: value }));
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+
   const getSectorDisplay = (sector) => {
     if (!sector || sector.length === 0) return "";
     
@@ -73,12 +82,12 @@ export default function MarketplaceUi() {
 
   // Query for filtered data (used for display)
   const { data: marketplaceData, isLoading } = useQuery({
-    queryKey: ["marketplace", filters],
+    queryKey: ["marketplace", { ...filters, search: debouncedSearch }],
     queryFn: () => {
       const params = {};
 
-      if (filters.search && filters.search.trim()) {
-        params.search = filters.search.trim();
+      if (debouncedSearch && debouncedSearch.trim()) {
+        params.search = debouncedSearch.trim();
       }
 
       if (filters.sector && filters.sector !== "all") {
@@ -122,8 +131,11 @@ export default function MarketplaceUi() {
     return [...new Set(allCohorts)].sort();
   }, [allData]);
 
-  console.log(filters, "filters");
-
+  const roles = useMemo(() => {
+    if (!allData?.data) return [];
+    const allRoles = allData.data.map(ele => ele.title).filter(Boolean);
+    return [...new Set(allRoles)].sort();
+  }, [allData]);
 
   const apiAlumni = marketplaceData?.data || [];
 
@@ -148,6 +160,7 @@ export default function MarketplaceUi() {
             sectors={sectors}
             locations={locations}
             cohorts={cohorts}
+            roles={roles}
             filtersLoading={allDataLoading}
           />
         </>
@@ -166,6 +179,7 @@ export default function MarketplaceUi() {
               sectors={sectors}
               locations={locations}
               cohorts={cohorts}
+              roles={roles}
               filtersLoading={allDataLoading}
               data={apiAlumni}
               isLoading={isLoading}
@@ -188,6 +202,7 @@ function MarketplaceContent({
   sectors,
   locations,
   cohorts,
+  roles,
   filtersLoading
 }) {
   // Clear all filters
@@ -198,6 +213,36 @@ function MarketplaceContent({
     updateFilter("location", "all");
     updateFilter("cohort", "all");
   };
+
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    return data.filter((alumni) => {
+      // Client-side role filter
+      if (filters.role && filters.role !== 'all') {
+        const userTitle = (alumni.title || '').toLowerCase();
+        if (!userTitle.includes(filters.role.toLowerCase())) return false;
+      }
+      // Client-side cohort filter
+      if (filters.cohort && filters.cohort !== 'all') {
+        if (alumni.cohort !== filters.cohort) return false;
+      }
+      // Client-side search across multiple fields
+      if (filters.search && filters.search.trim()) {
+        const q = filters.search.trim().toLowerCase();
+        const searchFields = [
+          alumni.firstName,
+          alumni.lastName,
+          `${alumni.firstName || ''} ${alumni.lastName || ''}`,
+          alumni.title,
+          alumni.email,
+          alumni.userId,
+          alumni.companyName,
+        ].map(f => (f || '').toLowerCase());
+        if (!searchFields.some(f => f.includes(q))) return false;
+      }
+      return true;
+    });
+  }, [data, filters.role, filters.cohort, filters.search]);
 
   return (
     <>
@@ -219,9 +264,15 @@ function MarketplaceContent({
             onValueChange={(v) => updateFilter("role", v)}
           >
             <SelectItem value="all">{t("roleAll")}</SelectItem>
-            <SelectItem value="developer">{t("roleDeveloper")}</SelectItem>
-            <SelectItem value="designer">{t("roleDesigner")}</SelectItem>
-            <SelectItem value="manager">{t("roleManager")}</SelectItem>
+            {filtersLoading ? (
+              <SelectItem value="loading" disabled>{t("loading")}</SelectItem>
+            ) : (
+              roles.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role}
+                </SelectItem>
+              ))
+            )}
           </FilterSelect>
 
           <FilterSelect
@@ -234,7 +285,7 @@ function MarketplaceContent({
               <SelectItem value="loading" disabled>{t("loading")}</SelectItem>
             ) : (
               sectors.map((ele) => (
-                <SelectItem key={ele} value={ele.split(" ").join("_")}>
+                <SelectItem key={ele} value={ele}>
                   {ele}
                 </SelectItem>
               ))
@@ -305,9 +356,9 @@ function MarketplaceContent({
           <div className="flex justify-center items-center h-full py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#233389]"></div>
           </div>
-        ) : data && data.length > 0 ? (
+        ) : filteredData && filteredData.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {data.map((alumni, index) => (
+            {filteredData.map((alumni, index) => (
               <AlumniCard
                 key={alumni.userId || index}
                 alumni={alumni}

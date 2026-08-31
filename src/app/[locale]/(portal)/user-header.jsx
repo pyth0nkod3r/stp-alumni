@@ -18,6 +18,7 @@ import { useNavbar } from "@/contexts/NavbarContext";
 import useAuthStore from "@/lib/store/useAuthStore";
 import { useAuth } from "@/lib/hooks/useUser";
 import FloatingSearch from "./dashboard/search/FloatingSearch";
+import NotificationDropdown from "@/components/shared/NotificationDropdown";
 
 /**
  * Get initials from a full name string
@@ -141,9 +142,7 @@ function UserHeader({ toggleSidebar, isCollapsed }) {
             </Link>
 
             {/* Notification Button */}
-            {/* <button className="p-3 rounded-full transition-all bg-[#02061814] hover:bg-white/60 active:scale-95 shadow-sm">
-            <Bell className="h-4 w-4 md:h-6 md:w-6 text-[#020618]" />
-          </button> */}
+            <NotificationDropdown />
 
             {/* Mobile: ProfileDrawer trigger */}
             <ProfileDrawer data={headerData}>

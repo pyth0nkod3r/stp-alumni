@@ -19,6 +19,7 @@ import {
   Pencil,
   Trash2,
   Film,
+  Flag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ import { useAuth } from "@/lib/hooks/useUser";
 import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import ReportPostModal from "./ReportPostModal";
 
 // Constants for word limits
 const MAX_WORDS = 1250;
@@ -403,6 +405,7 @@ export default function PostCard({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [editContent, setEditContent] = useState(post.body || post.content || "");
   const [isSaved, setIsSaved] = useState(!!post.isSaved);
   const dropdownRef = useRef(null);
@@ -653,6 +656,19 @@ export default function PostCard({
                     <LinkIcon className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">{t("copyLink")}</span>
                   </button>
+
+                  {!isOwner && (
+                    <button
+                      onClick={() => {
+                        setOpenDropdown(false);
+                        setReportModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-red-50 text-left text-red-600 transition-colors"
+                    >
+                      <Flag className="h-4 w-4 text-red-500" />
+                      <span className="text-sm">Report post</span>
+                    </button>
+                  )}
 
                   {canModify && (
                     <>
@@ -1027,6 +1043,13 @@ export default function PostCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Report Post Modal ── */}
+      <ReportPostModal 
+        open={reportModalOpen} 
+        onClose={() => setReportModalOpen(false)} 
+        postId={post.id} 
+      />
     </>
   );
 }
