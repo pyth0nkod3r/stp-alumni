@@ -250,9 +250,11 @@ const handleLaunch = async () => {
     console.log("Room created, roomId:", roomId, "full response:", data);
 
     if (roomId) {
-      const memberIds = Array.from(selectedMembers.keys());
-      if (memberIds.length > 0) {
-        await addMember(roomId, memberIds);
+      const memberUserIds = Array.from(selectedMembers.values()).map(
+        (conn) => conn.userId || conn.id || conn.connectionId
+      );
+      if (memberUserIds.length > 0) {
+        await addMember(roomId, memberUserIds);
       }
     }
 

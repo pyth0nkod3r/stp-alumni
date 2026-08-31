@@ -45,7 +45,7 @@ export default async function RootLayout({ children, params }) {
         >
           <NextIntlClientProvider locale={locale} messages={messages}>
             <QueryProvider>
-              
+
 
               <Toaster position="bottom-right" />
               <AuthProvider>

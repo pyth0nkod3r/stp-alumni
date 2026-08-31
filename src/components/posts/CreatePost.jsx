@@ -57,7 +57,7 @@ export default function CreatePost({ onPostCreated }) {
   const handleContentChange = (e) => {
     const value = e.target.value;
     const words = value.trim().split(/\s+/);
-    
+
     if (words.length > MAX_WORDS && words.length > wordCount) {
       const trimmedValue = value.split(/\s+/).slice(0, MAX_WORDS).join(" ");
       setPostContent(trimmedValue);
@@ -69,7 +69,7 @@ export default function CreatePost({ onPostCreated }) {
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);
-    
+
     const validation = validateImages([...images, ...files]);
     if (!validation.valid) {
       toast.error(validation.error);
@@ -312,8 +312,8 @@ export default function CreatePost({ onPostCreated }) {
             disabled={!canSubmit}
             className={`
               relative overflow-hidden rounded-xl px-6 py-2.5 font-medium transition-all duration-200
-              ${canSubmit 
-                ? "bg-[#233389] hover:bg-[#1a2866] text-white shadow-lg shadow-[#233389]/20 hover:shadow-[#233389]/30" 
+              ${canSubmit
+                ? "bg-[#233389] hover:bg-[#1a2866] text-white shadow-lg shadow-[#233389]/20 hover:shadow-[#233389]/30"
                 : "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
               }
             `}

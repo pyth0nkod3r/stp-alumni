@@ -47,7 +47,7 @@ export default function MembersModal({
 
   // Create a Set of existing member IDs for quick lookup
   const existingMemberIds = useMemo(() => {
-    return new Set(members.map((m) => m.userId));
+    return new Set(members.map((m) => m.userId || m.id || m.connectionId).filter(Boolean));
   }, [members]);
 
   // Fetch connections
@@ -68,7 +68,10 @@ export default function MembersModal({
   // Filter out existing members from connections
   const availableConnections = useMemo(() => {
     return allConnections.filter(
-      (conn) => !existingMemberIds.has(conn.connectionId),
+      (conn) =>
+        !existingMemberIds.has(conn.userId) &&
+        !existingMemberIds.has(conn.id) &&
+        !existingMemberIds.has(conn.connectionId),
     );
   }, [allConnections, existingMemberIds]);
 
@@ -123,7 +126,10 @@ export default function MembersModal({
   }, [search, performSearch]);
 
   const handleAddMember = (connection) => {
-    onAddMember?.(room.id, [connection.userId]);
+    const memberId = connection.userId || connection.id || connection.connectionId;
+    if (memberId) {
+      onAddMember?.(room.id, [memberId]);
+    }
     setSearch("");
     setSearchResults([]);
   };
