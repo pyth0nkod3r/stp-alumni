@@ -31,12 +31,39 @@ import eventService from "@/lib/services/eventService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/hooks/useUser";
+import { useDeleteEvent } from "@/lib/hooks/useEventQueries";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from "@/i18n/routing";
 
 export default function EventDetail({ params }) {
   const { id } = React.use(params);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [isRegistrantsModalOpen, setIsRegistrantsModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { data: currentUser } = useAuth();
+  
+  const deleteEventMutation = useDeleteEvent();
+
+  const handleDelete = () => {
+    deleteEventMutation.mutate(id, {
+      onSuccess: () => {
+        router.push('/dashboard/events');
+      }
+    });
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["events", id],
@@ -90,6 +117,8 @@ export default function EventDetail({ params }) {
     : Array.isArray(registrantsData)
     ? registrantsData
     : [];
+
+  const isCreator = currentUser?.userId === event?.createdBy || currentUser?.id === event?.createdBy;
 
   const formatEventDateTime = (startTime, endTime) => {
     if (!startTime) return "";
@@ -232,6 +261,51 @@ export default function EventDetail({ params }) {
                     <Users className="h-4 w-4 mr-2" />
                     View Registrants ({event?.attendeeCount || 0})
                   </Button>
+
+                  {isCreator && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="rounded-2xl border-primary text-primary hover:bg-primary/10"
+                        onClick={() => {
+                          setIsCreateModalOpen(true);
+                          setIsEditMode(true);
+                        }}
+                      >
+                        Edit Event
+                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="rounded-2xl border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the event
+                              and remove it from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDelete}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                              disabled={deleteEventMutation.isPending}
+                            >
+                              {deleteEventMutation.isPending ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -249,7 +323,10 @@ export default function EventDetail({ params }) {
             <Button
               variant="outline"
               className="w-full bg-transparent! text-stp-blue-light border-stp-blue-light! rounded-2xl"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => {
+                setIsCreateModalOpen(true);
+                setIsEditMode(false);
+              }}
             >
               Create event
             </Button>
@@ -294,6 +371,9 @@ export default function EventDetail({ params }) {
       <CreateEventModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
+        editMode={isEditMode}
+        initialData={isEditMode ? event : null}
+        onEditSuccess={() => queryClient.invalidateQueries(["events", id])}
       />
 
       {/* ── View Registrants Modal ── */}
@@ -325,6 +405,7 @@ export default function EventDetail({ params }) {
                 const email = reg.email || reg.user?.email || "";
                 const avatarUrl = reg.profileImagePath || reg.avatar || reg.user?.profileImagePath;
                 const regDate = reg.registeredAt || reg.createdAt;
+                const location = reg.location || reg.user?.location || "";
 
                 return (
                   <div
@@ -344,6 +425,12 @@ export default function EventDetail({ params }) {
                       {email && (
                         <p className="text-xs text-gray-500 truncate">
                           {email}
+                        </p>
+                      )}
+                      {location && (
+                        <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {location}
                         </p>
                       )}
                     </div>

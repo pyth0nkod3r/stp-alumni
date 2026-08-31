@@ -57,7 +57,7 @@ export default function CreatePost({ onPostCreated }) {
   const handleContentChange = (e) => {
     const value = e.target.value;
     const words = value.trim().split(/\s+/);
-    
+
     if (words.length > MAX_WORDS && words.length > wordCount) {
       const trimmedValue = value.split(/\s+/).slice(0, MAX_WORDS).join(" ");
       setPostContent(trimmedValue);
@@ -69,7 +69,7 @@ export default function CreatePost({ onPostCreated }) {
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files || []);
-    
+
     const validation = validateImages([...images, ...files]);
     if (!validation.valid) {
       toast.error(validation.error);
@@ -148,7 +148,7 @@ export default function CreatePost({ onPostCreated }) {
   const canSubmit = (postContent.trim() || images.length > 0 || video) && !isOverLimit && !isLoading;
 
   return (
-    <div className="rounded-2xl bg-linear-to-br from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800/50 p-5 shadow-sm border border-gray-200/60 dark:border-gray-700/60 transition-all hover:shadow-md">
+    <div className="rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-sm border border-gray-200 dark:border-gray-800 transition-all hover:shadow-md">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -177,12 +177,12 @@ export default function CreatePost({ onPostCreated }) {
             onChange={handleContentChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className={`w-full p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border-2 resize-none focus:outline-none transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-800 dark:text-gray-200 ${
+            className={`w-full p-4 rounded-xl border resize-none focus:outline-none transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-800 dark:text-gray-200 ${
               isFocused
-                ? "border-[#233389] ring-4 ring-[#233389]/10 dark:ring-[#233389]/20"
+                ? "border-[#233389] ring-2 ring-[#233389]/20 bg-white dark:bg-gray-900"
                 : isOverLimit
-                ? "border-red-400 dark:border-red-500"
-                : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                ? "border-red-400 dark:border-red-500 bg-gray-50/60 dark:bg-gray-800/60"
+                : "border-gray-300 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 hover:border-gray-400 dark:hover:border-gray-600"
             }`}
             rows={3}
             disabled={isLoading}
@@ -312,8 +312,8 @@ export default function CreatePost({ onPostCreated }) {
             disabled={!canSubmit}
             className={`
               relative overflow-hidden rounded-xl px-6 py-2.5 font-medium transition-all duration-200
-              ${canSubmit 
-                ? "bg-[#233389] hover:bg-[#1a2866] text-white shadow-lg shadow-[#233389]/20 hover:shadow-[#233389]/30" 
+              ${canSubmit
+                ? "bg-[#233389] hover:bg-[#1a2866] text-white shadow-lg shadow-[#233389]/20 hover:shadow-[#233389]/30"
                 : "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
               }
             `}

@@ -15,6 +15,7 @@ import {
   Briefcase,
   Settings,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 
 /**
@@ -49,6 +50,7 @@ const Sidebar = ({ isCollapsed }) => {
     },
     { label: t("events"), href: "/dashboard/events", icon: Calendar },
     { label: t("dealRoom"), href: "/dashboard/deal-room", icon: Briefcase },
+    { label: "Support", href: "/dashboard/support", icon: HelpCircle },
   ];
 
   const bottomItems = [

@@ -1,75 +1,7 @@
 'use client';
+
 import { useEffect, useRef, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { dealroomKeys } from './useDealroomQueries';
-import useAuthStore from '@/lib/store/useAuthStore';
-
-const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  (process.env.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/ws')
-    : 'wss://api.blazingtorrent.org/ws');
-const RECONNECT_DELAY = 3000;
-const MAX_RETRIES = 5;
-
-/**
- * Singleton WebSocket manager so multiple hook instances share one connection.
- */
-let socket = null;
-let socketListeners = new Map(); // roomId → Set<handler>
-let presenceListeners = new Set();
-let retryCount = 0;
-let retryTimer = null;
-
-function getSocket(token, onOpen) {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    onOpen?.();
-    return socket;
-  }
-  if (socket && socket.readyState === WebSocket.CONNECTING) {
-    socket.addEventListener('open', () => onOpen?.(), { once: true });
-    return socket;
-  }
-
-  socket = new WebSocket(WS_URL);
-
-  socket.addEventListener('open', () => {
-    retryCount = 0;
-    socket.send(JSON.stringify({ type: 'auth', token }));
-    onOpen?.();
-  });
-
-  socket.addEventListener('message', (event) => {
-    let data;
-    try { data = JSON.parse(event.data); } catch { return; }
-
-    // Route deal room events
-    if (
-      data.type === 'dealroom_message' ||
-      data.type === 'dealroom_typing' ||
-      data.type === 'dealroom_read'
-    ) {
-      const handlers = socketListeners.get(data.roomId);
-      handlers?.forEach((fn) => fn(data));
-    }
-
-    // Route presence events to all
-    if (data.type === 'presence') {
-      presenceListeners.forEach((fn) => fn(data));
-    }
-  });
-
-  socket.addEventListener('close', () => {
-    socket = null;
-    if (retryCount < MAX_RETRIES) {
-      retryCount++;
-      retryTimer = setTimeout(() => getSocket(token, null), RECONNECT_DELAY);
-    }
-  });
-
-  return socket;
-}
+import { useWebSocketContext } from '@/contexts/WebSocketContext';
 
 /**
  * useDealRoomSocket
@@ -81,85 +13,92 @@ function getSocket(token, onOpen) {
  *   onRead(event)    - called for dealroom_read events
  *   onPresence(evt)  - called for presence events
  */
-export function useDealRoomSocket(roomId, { onMessage, onTyping, onRead, onPresence } = {}) {
-  const token = useAuthStore((s) => s.token || s.accessToken);
-  const queryClient = useQueryClient();
-  const socketRef = useRef(null);
-  const sendRef = useRef(null);
+export function useDealRoomSocket(
+  roomId,
+  { onMessage, onTyping, onRead, onPresence } = {}
+) {
+  const ws = useWebSocketContext();
+
+  const onMessageRef = useRef(onMessage);
+  const onTypingRef = useRef(onTyping);
+  const onReadRef = useRef(onRead);
+  const onPresenceRef = useRef(onPresence);
   const typingTimerRef = useRef(null);
 
-  // ── Build a stable send helper ──────────────────────────────────
-  const send = useCallback((payload) => {
-    const ws = socketRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(payload));
-    }
-  }, []);
+  // Keep callback refs fresh
+  onMessageRef.current = onMessage;
+  onTypingRef.current = onTyping;
+  onReadRef.current = onRead;
+  onPresenceRef.current = onPresence;
 
-  sendRef.current = send;
-
-  // ── Connect & register listeners for the current room ──────────
+  // ── Register Deal Room Listeners ───────────────────────────────
   useEffect(() => {
-    if (!token) return;
+    if (!ws || !roomId) return;
 
-    const ws = getSocket(token, () => {
-      // Subscribe to this room via WS after auth
-    });
-    socketRef.current = ws;
-
-    if (!roomId) return;
-
-    const handler = (data) => {
+    const unsubRoom = ws.subscribeToDealRoom(roomId, (data) => {
       if (data.type === 'dealroom_message') {
-        // Optimistically invalidate messages so React Query re-fetches
-        queryClient.invalidateQueries({ queryKey: dealroomKeys.messages(roomId) });
-        onMessage?.(data);
+        onMessageRef.current?.(data);
       } else if (data.type === 'dealroom_typing') {
-        onTyping?.(data);
+        onTypingRef.current?.(data);
       } else if (data.type === 'dealroom_read') {
-        onRead?.(data);
+        onReadRef.current?.(data);
       }
-    };
-
-    if (!socketListeners.has(roomId)) socketListeners.set(roomId, new Set());
-    socketListeners.get(roomId).add(handler);
+    });
 
     return () => {
-      socketListeners.get(roomId)?.delete(handler);
+      unsubRoom?.();
     };
-  }, [token, roomId, queryClient, onMessage, onTyping, onRead]);
+  }, [ws, roomId]);
 
-  // ── Presence listener ──────────────────────────────────────────
+  // ── Register Presence Listener ─────────────────────────────────
   useEffect(() => {
-    if (!onPresence) return;
-    presenceListeners.add(onPresence);
-    return () => presenceListeners.delete(onPresence);
-  }, [onPresence]);
+    if (!ws || !onPresence) return;
+
+    const unsubPresence = ws.subscribeToPresence((data) => {
+      onPresenceRef.current?.(data);
+    });
+
+    return () => {
+      unsubPresence?.();
+    };
+  }, [ws, !!onPresence]);
 
   // ── Public API ─────────────────────────────────────────────────
+  const sendMessage = useCallback(
+    (content) => {
+      if (!roomId || !ws) return false;
+      return ws.sendDealRoomMessage(roomId, content);
+    },
+    [roomId, ws]
+  );
 
-  const sendMessage = useCallback((content) => {
-    if (!roomId) return;
-    sendRef.current({ type: 'dealroom_message', roomId, content });
-  }, [roomId]);
-
-  const sendMediaMessage = useCallback((messageId) => {
-    if (!roomId) return;
-    sendRef.current({ type: 'dealroom_media', roomId, messageId });
-  }, [roomId]);
+  const sendMediaMessage = useCallback(
+    (messageId) => {
+      if (!roomId || !ws) return false;
+      return ws.sendDealRoomMedia(roomId, messageId);
+    },
+    [roomId, ws]
+  );
 
   const sendTyping = useCallback(() => {
-    if (!roomId) return;
-    sendRef.current({ type: 'dealroom_typing', roomId });
-    // Debounce — stop re-sending for 3s
+    if (!roomId || !ws) return false;
+    ws.sendDealRoomTyping(roomId);
+    // Debounce re-sending
     clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(() => {}, 3000);
-  }, [roomId]);
+    return true;
+  }, [roomId, ws]);
 
   const markRead = useCallback(() => {
-    if (!roomId) return;
-    sendRef.current({ type: 'dealroom_read', roomId });
-  }, [roomId]);
+    if (!roomId || !ws) return false;
+    return ws.sendDealRoomRead(roomId);
+  }, [roomId, ws]);
 
-  return { sendMessage, sendMediaMessage, sendTyping, markRead };
-}
+  return {
+    isConnected: ws?.isConnected ?? false,
+    sendMessage,
+    sendMediaMessage,
+    sendTyping,
+    markRead,
+  };
+}

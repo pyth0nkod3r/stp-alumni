@@ -31,7 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+
 
 # vercel
 .vercel
@@ -42,3 +42,8 @@ next-env.d.ts
 brain/
 do-not-track
 Blazing_Connect_User_API_Final.md
+blue-print/
+blue-print/*
+.specstory/
+frontend_api_coverage_categorized.pdf
+BACKEND_INTEGRATION_NOTES.md

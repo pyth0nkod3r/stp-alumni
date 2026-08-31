@@ -59,6 +59,22 @@ const eventService = {
     const response = await api.get(`/events/${eventId}/registrants`);
     return response.data;
   },
+
+  // 🔴 MOCK: Replace with real API call when backend endpoint is available
+  // Expected endpoint: PUT /events/:eventId (multipart/form-data with same fields as create)
+  // Expected response: { status: true, message: "Event updated successfully", data: {...} }
+  updateEvent: async (eventId, formData) => {
+    const response = await api.put(`/events/${eventId}`, formData);
+    return response.data;
+  },
+
+  // 🔴 MOCK: Replace with real API call when backend endpoint is available  
+  // Expected endpoint: DELETE /events/:eventId
+  // Expected response: { status: true, message: "Event deleted successfully" }
+  deleteEvent: async (eventId) => {
+    const response = await api.delete(`/events/${eventId}`);
+    return response.data;
+  },
 };
 
 export default eventService;

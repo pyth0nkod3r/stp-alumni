@@ -16,6 +16,7 @@ import {
 } from '@/lib/hooks/useDealroomQueries';
 import { useDealRoomSocket } from '@/lib/hooks/useDealRoomSocket';
 import useAuthStore from '@/lib/store/useAuthStore';
+import usePresenceStore from '@/lib/store/usePresenceStore';
 
 const EMPTY_ARRAY = [];
 
@@ -142,12 +143,17 @@ export function useDealRoom() {
     }
   }, [selectedRoomId, queryClient]);
 
+  const handlePresence = useCallback((data) => {
+    usePresenceStore.getState().setPresence(data.userId, data.status);
+  }, []);
+
   const { sendMessage: wsSendMessage, sendTyping, markRead } = useDealRoomSocket(
     selectedRoomId,
     {
       onMessage: () => {}, // invalidation handled inside useDealRoomSocket
       onTyping: handleTyping,
       onRead: handleRead,
+      onPresence: handlePresence,
     },
   );
 
@@ -202,11 +208,35 @@ export function useDealRoom() {
   const sendMessage = useCallback(
     (content) => {
       if (!selectedRoomId || !content.trim()) return;
-      // Send via WS for real-time, REST for persistence
+      
+      // Optimistic: inject temp message into cache
+      const tempId = `temp-${Date.now()}`;
+      const tempMessage = {
+        id: tempId,
+        messageId: tempId,
+        roomId: selectedRoomId,
+        senderId: currentUserId,
+        senderName: 'You',
+        content: content.trim(),
+        createdAt: new Date(),
+        isOwn: true,
+        status: 'sending',
+        type: 'text',
+      };
+      
+      queryClient.setQueryData(dealroomKeys.messages(selectedRoomId), (old) => {
+        if (!old) return { pages: [[tempMessage]], pageParams: [1] };
+        const newPages = [...old.pages];
+        newPages[0] = [...(newPages[0] || []), tempMessage];
+        return { ...old, pages: newPages };
+      });
+      
+      // Send via WS for real-time
       wsSendMessage(content);
-      // sendMessageMutation({ roomId: selectedRoomId, content: content.trim() });
+      // Send via REST for persistence
+      sendMessageMutation({ roomId: selectedRoomId, content: content.trim() });
     },
-    [selectedRoomId, wsSendMessage, sendMessageMutation],
+    [selectedRoomId, wsSendMessage, sendMessageMutation, currentUserId, queryClient],
   );
 
   const deleteMessage = useCallback(
@@ -233,10 +263,10 @@ export function useDealRoom() {
     try {
       // Send via WS + REST, same as a normal send
       wsSendMessage(failedMsg.content);
-      // await sendMessageMutation({
-      //   roomId: selectedRoomId,
-      //   content: failedMsg.content,
-      // });
+      await sendMessageMutation({
+        roomId: selectedRoomId,
+        content: failedMsg.content,
+      });
     } catch {
       // mutation's onError already toasts
     }

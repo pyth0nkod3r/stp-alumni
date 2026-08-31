@@ -23,6 +23,9 @@ import {
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useUpdateEvent } from "@/lib/hooks/useEventQueries";
+import { useEffect } from "react";
+
 const timezones = [
   "(UTC-12:00) International Date Line West",
   "(UTC-08:00) Pacific Time (US & Canada)",
@@ -34,7 +37,7 @@ const timezones = [
 
 const eventFormats = ["Live Link", "External Event Link"];
 
-export function CreateEventModal({ open, onOpenChange }) {
+export function CreateEventModal({ open, onOpenChange, editMode = false, initialData = null, onEditSuccess }) {
   const fileInputRef = useRef(null);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -76,6 +79,78 @@ export function CreateEventModal({ open, onOpenChange }) {
       toast.error(error.response?.data?.message || "Failed to create event. Please try again.");
     },
   });
+
+  const updateEventMutation = useUpdateEvent();
+
+  useEffect(() => {
+    if (open && editMode && initialData) {
+      const type = initialData.type || "";
+      const isOnline = type === "online" || type === "hybrid";
+      const isInPerson = type === "in-person" || type === "hybrid";
+      
+      let startDate = "";
+      let startTime = "";
+      let endDate = "";
+      let endTime = "";
+      
+      if (initialData.startTime) {
+        const d = new Date(initialData.startTime);
+        if (!isNaN(d.getTime())) {
+          startDate = d.toISOString().split("T")[0];
+          startTime = d.toTimeString().slice(0, 5);
+        }
+      }
+      
+      if (initialData.endTime) {
+        const d = new Date(initialData.endTime);
+        if (!isNaN(d.getTime())) {
+          endDate = d.toISOString().split("T")[0];
+          endTime = d.toTimeString().slice(0, 5);
+        }
+      }
+
+      reset({
+        isOnline,
+        isInPerson,
+        eventFormat: initialData.format || "",
+        eventName: initialData.name || "",
+        timezone: initialData.timeZone || "",
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        address: initialData.address || "",
+        venue: initialData.venue || "",
+        eventLink: initialData.externalLink || "",
+        description: initialData.description || "",
+        coverImage: null,
+      });
+
+      if (initialData.coverImage) {
+        setPreviewImage(initialData.coverImage);
+      } else {
+        setPreviewImage(null);
+      }
+    } else if (open && !editMode) {
+      reset({
+        isOnline: true,
+        isInPerson: false,
+        eventFormat: "",
+        eventName: "",
+        timezone: "",
+        startDate: "",
+        startTime: "",
+        endDate: "",
+        endTime: "",
+        address: "",
+        venue: "",
+        eventLink: "",
+        description: "",
+        coverImage: null,
+      });
+      setPreviewImage(null);
+    }
+  }, [open, editMode, initialData, reset]);
 
   // URL validation helper
   const validateAndFormatUrl = (url) => {
@@ -166,7 +241,19 @@ export function CreateEventModal({ open, onOpenChange }) {
       formData.append("coverImage", data.coverImage);
     }
 
-    createEventMutation.mutate(formData);
+    if (editMode && initialData) {
+      updateEventMutation.mutate(
+        { eventId: initialData.id, formData },
+        {
+          onSuccess: () => {
+            onOpenChange(false);
+            onEditSuccess?.();
+          },
+        }
+      );
+    } else {
+      createEventMutation.mutate(formData);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -211,7 +298,7 @@ export function CreateEventModal({ open, onOpenChange }) {
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
-            Create an event
+            {editMode ? "Edit Event" : "Create an event"}
           </DialogTitle>
         </DialogHeader>
 
@@ -431,8 +518,10 @@ export function CreateEventModal({ open, onOpenChange }) {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={createEventMutation.isPending}>
-            {createEventMutation.isPending ? "Creating..." : "Next"}
+          <Button type="submit" className="w-full" disabled={createEventMutation.isPending || updateEventMutation.isPending}>
+            {createEventMutation.isPending || updateEventMutation.isPending 
+              ? (editMode ? "Updating..." : "Creating...") 
+              : (editMode ? "Update Event" : "Next")}
           </Button>
         </form>
       </DialogContent>
