@@ -19,7 +19,21 @@ export function useUnreadSupportCount() {
   return useQuery({
     queryKey: ['support', 'unreadCount'],
     queryFn: () => supportService.getUnreadCount(),
-    select: (data) => data?.data?.count || 0,
+    select: (data) => data?.data?.unreadCount ?? data?.data?.count ?? 0,
     refetchInterval: 60000,
   });
 }
+
+export function useSupportMessages(params = {}) {
+  return useQuery({
+    queryKey: ['support', 'messages', params],
+    queryFn: () => supportService.getSupportMessages(params),
+  });
+}
+
+export function useUpdateSupportTicket() {
+  return useMutation({
+    mutationFn: ({ supportId, status }) => supportService.updateTicketStatus(supportId, status),
+  });
+}
+

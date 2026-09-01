@@ -31,24 +31,50 @@ const getNotificationIcon = (type) => {
   }
 };
 
+const getNotificationActionUrl = (notification) => {
+  if (notification.actionUrl) return notification.actionUrl;
+  const data = notification.data || {};
+  switch (notification.type) {
+    case 'CONNECTION_REQUEST':
+      return '/dashboard/network?active=invitation';
+    case 'CONNECTION_ACCEPTED':
+      return data.senderId ? `/dashboard/profile/${data.senderId}` : '/dashboard/network';
+    case 'POST_LIKE':
+    case 'POST_COMMENT':
+      return data.postId ? `/dashboard/post/${data.postId}` : '/dashboard/newsfeed';
+    case 'EVENT_UPDATE':
+    case 'EVENT_REGISTRATION':
+      return data.eventId ? `/dashboard/events/${data.eventId}` : '/dashboard/events';
+    default:
+      return null;
+  }
+};
+
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   const { data, isLoading } = useNotifications();
-  const notifications = data?.data?.notifications || [];
+  const rawList = data?.data;
+  const notifications = Array.isArray(rawList)
+    ? rawList
+    : Array.isArray(rawList?.notifications)
+    ? rawList.notifications
+    : [];
   
   const { data: unreadCount } = useUnreadNotificationCount();
   const markAsRead = useMarkNotificationRead();
   const markAllAsRead = useMarkAllNotificationsRead();
 
   const handleNotificationClick = (notification) => {
-    if (!notification.isRead) {
-      markAsRead.mutate(notification.id);
+    const id = notification.notificationId || notification.id;
+    if (!notification.isRead && id) {
+      markAsRead.mutate(id);
     }
     setIsOpen(false);
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl);
+    const targetUrl = getNotificationActionUrl(notification);
+    if (targetUrl) {
+      router.push(targetUrl);
     }
   };
 
@@ -93,9 +119,9 @@ export default function NotificationDropdown() {
             </div>
           ) : (
             <div className="flex flex-col">
-              {notifications.map((notification) => (
+              {notifications.map((notification, idx) => (
                 <button
-                  key={notification.id}
+                  key={notification.notificationId || notification.id || idx}
                   onClick={() => handleNotificationClick(notification)}
                   className={cn(
                     "flex items-start gap-3 p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0",

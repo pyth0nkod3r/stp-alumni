@@ -421,7 +421,9 @@ export function useRespondToInvitation() {
     onSuccess: (_data, { action }) => {
       queryClient.invalidateQueries({ queryKey: messagingKeys.invitations });
       queryClient.invalidateQueries({ queryKey: messagingKeys.conversations });
-      toast.success(action === 'accept' ? 'Invitation accepted' : 'Invitation declined');
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+      queryClient.invalidateQueries({ queryKey: ['network'] });
+      toast.success(action === 'accept' ? 'Invitation accepted' : 'Invitation ignored');
     },
 
     onError: () => {

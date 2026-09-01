@@ -51,6 +51,15 @@ const networkService = {
   },
 
   /**
+   * Fetch suggested connections by location and role
+   * @param {number} limit
+   */
+  getSuggestedConnections: async (limit = 10) => {
+    const response = await api.get('/connections/suggested', { params: { limit } });
+    return response.data;
+  },
+
+  /**
    * Disconnect / remove connection
    * @param {string} connectionId
    */

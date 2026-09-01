@@ -63,6 +63,16 @@ const userService = {
     const response = await api.get('/users/saved-posts');
     return response.data;
   },
+
+  /**
+   * Edit user details (Admin)
+   * @param {string} userId
+   * @param {Object} data
+   */
+  adminUpdateUser: async (userId, data) => {
+    const response = await api.patch(`/backoffice/users/${userId}`, data);
+    return response.data;
+  },
 };
 
 export default userService;

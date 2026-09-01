@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventId, formData }) => eventService.updateEvent(eventId, formData),
+    mutationFn: ({ eventId, data, formData }) => eventService.updateEvent(eventId, data || formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['myEvents'] });
