@@ -5,6 +5,7 @@ import dealroomService from '../services/dealroomService';
 export const dealroomKeys = {
   myrooms: ['dealrooms'],
   room: (id) => ['dealrooms', id],
+  members: (id) => ['dealrooms', id, 'members'],
   messages: (id) => ['dealrooms', id, 'messages'],
   auditLog: (id) => ['dealrooms', id, 'audit-log'],
 };
@@ -73,11 +74,24 @@ export function useRemoveDealroomMember() {
     mutationFn: ({ roomId, userId }) => dealroomService.removeMember(roomId, userId),
     onSuccess: (_, { roomId }) => {
       queryClient.invalidateQueries({ queryKey: dealroomKeys.room(roomId) });
+      queryClient.invalidateQueries({ queryKey: dealroomKeys.members(roomId) });
       toast.success('Member removed');
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || 'Failed to remove member');
     },
+  });
+}
+
+export function useDealroomMembers(roomId, enabled = true) {
+  return useQuery({
+    queryKey: dealroomKeys.members(roomId),
+    queryFn: async () => {
+      const data = await dealroomService.getDealroomMembers(roomId);
+      return Array.isArray(data?.data) ? data.data : [];
+    },
+    enabled: !!roomId && enabled,
+    staleTime: 30 * 1000,
   });
 }
 

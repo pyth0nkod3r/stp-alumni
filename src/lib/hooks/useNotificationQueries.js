@@ -21,7 +21,7 @@ export function useUnreadNotificationCount() {
     queryKey: notificationKeys.unreadCount,
     queryFn: () => notificationService.getUnreadCount(),
     refetchInterval: 30000, // Refetch every 30s
-    select: (data) => data?.data?.count || 0,
+    select: (data) => data?.data?.unreadCount ?? data?.data?.count ?? 0,
   });
 }
 

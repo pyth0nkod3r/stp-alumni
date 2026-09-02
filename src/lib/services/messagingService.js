@@ -104,23 +104,24 @@ const messagingService = {
   },
 
   /**
-   * Get pending direct chat invitations for the current user.
+   * Get pending invitations / connection requests for the current user.
    */
   getPendingInvitations: async () => {
-    const response = await api.get('/messaging/direct/invitations');
+    const response = await api.get('/connections/requests');
     return response.data;
   },
 
   /**
-   * Respond to a direct chat invitation.
+   * Respond to an invitation / connection request.
    * @param {string} invitationId
-   * @param {"accept"|"decline"} action
+   * @param {"accept"|"decline"|"ignore"} action
    */
   respondToInvitation: async (invitationId, action) => {
-    const response = await api.post(
-      `/messaging/direct/invitations/${invitationId}/respond`,
-      { action }
-    );
+    if (action === 'accept') {
+      const response = await api.put(`/connections/${invitationId}/accept`);
+      return response.data;
+    }
+    const response = await api.put(`/connections/${invitationId}/ignore`);
     return response.data;
   },
 

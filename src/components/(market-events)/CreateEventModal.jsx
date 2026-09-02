@@ -242,8 +242,29 @@ export function CreateEventModal({ open, onOpenChange, editMode = false, initial
     }
 
     if (editMode && initialData) {
+      const updatePayload = {
+        name: data.eventName,
+        description: data.description,
+        type: finalEventType === "hybrid" ? "online,in-person" : finalEventType,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        timeZone: data.timezone,
+      };
+
+      if (data.eventLink) {
+        updatePayload.externalLink = data.eventLink;
+      }
+      if (finalEventType === "in-person" || finalEventType === "hybrid") {
+        if (data.address) updatePayload.address = data.address;
+        if (data.venue) updatePayload.venue = data.venue;
+      }
+      if (data.capacity) {
+        updatePayload.capacity = Number(data.capacity);
+      }
+
+      const eventId = initialData.eventId || initialData.id;
       updateEventMutation.mutate(
-        { eventId: initialData.id, formData },
+        { eventId, data: updatePayload },
         {
           onSuccess: () => {
             onOpenChange(false);

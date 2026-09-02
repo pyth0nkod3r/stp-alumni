@@ -36,14 +36,20 @@ export default function MarketplaceUi() {
     cohort: "all",
   });
 
-  const updateFilter = (key, value) =>
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
 
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(filters.search);
+      setPage(1);
     }, 300);
     return () => clearTimeout(timer);
   }, [filters.search]);
@@ -82,9 +88,9 @@ export default function MarketplaceUi() {
 
   // Query for filtered data (used for display)
   const { data: marketplaceData, isLoading } = useQuery({
-    queryKey: ["marketplace", { ...filters, search: debouncedSearch }],
+    queryKey: ["marketplace", { ...filters, search: debouncedSearch, page, limit }],
     queryFn: () => {
-      const params = {};
+      const params = { page, limit };
 
       if (debouncedSearch && debouncedSearch.trim()) {
         params.search = debouncedSearch.trim();
@@ -138,6 +144,7 @@ export default function MarketplaceUi() {
   }, [allData]);
 
   const apiAlumni = marketplaceData?.data || [];
+  const pagination = marketplaceData?.pagination;
 
   return (
     <div
@@ -155,6 +162,9 @@ export default function MarketplaceUi() {
             filters={filters}
             updateFilter={updateFilter}
             data={apiAlumni}
+            pagination={pagination}
+            page={page}
+            setPage={setPage}
             isLoading={isLoading}
             getSectorDisplay={getSectorDisplay}
             sectors={sectors}
@@ -182,6 +192,9 @@ export default function MarketplaceUi() {
               roles={roles}
               filtersLoading={allDataLoading}
               data={apiAlumni}
+              pagination={pagination}
+              page={page}
+              setPage={setPage}
               isLoading={isLoading}
               getSectorDisplay={getSectorDisplay}
             />
@@ -197,6 +210,9 @@ function MarketplaceContent({
   filters,
   updateFilter,
   data,
+  pagination,
+  page,
+  setPage,
   isLoading,
   getSectorDisplay,
   sectors,
@@ -214,35 +230,7 @@ function MarketplaceContent({
     updateFilter("cohort", "all");
   };
 
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    return data.filter((alumni) => {
-      // Client-side role filter
-      if (filters.role && filters.role !== 'all') {
-        const userTitle = (alumni.title || '').toLowerCase();
-        if (!userTitle.includes(filters.role.toLowerCase())) return false;
-      }
-      // Client-side cohort filter
-      if (filters.cohort && filters.cohort !== 'all') {
-        if (alumni.cohort !== filters.cohort) return false;
-      }
-      // Client-side search across multiple fields
-      if (filters.search && filters.search.trim()) {
-        const q = filters.search.trim().toLowerCase();
-        const searchFields = [
-          alumni.firstName,
-          alumni.lastName,
-          `${alumni.firstName || ''} ${alumni.lastName || ''}`,
-          alumni.title,
-          alumni.email,
-          alumni.userId,
-          alumni.companyName,
-        ].map(f => (f || '').toLowerCase());
-        if (!searchFields.some(f => f.includes(q))) return false;
-      }
-      return true;
-    });
-  }, [data, filters.role, filters.cohort, filters.search]);
+  const listData = Array.isArray(data) ? data : [];
 
   return (
     <>
@@ -356,17 +344,47 @@ function MarketplaceContent({
           <div className="flex justify-center items-center h-full py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#233389]"></div>
           </div>
-        ) : filteredData && filteredData.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredData.map((alumni, index) => (
-              <AlumniCard
-                key={alumni.userId || index}
-                alumni={alumni}
-                t={t}
-                getSectorDisplay={getSectorDisplay}
-              />
-            ))}
-          </div>
+        ) : listData && listData.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {listData.map((alumni, index) => (
+                <AlumniCard
+                  key={alumni.userId || index}
+                  alumni={alumni}
+                  t={t}
+                  getSectorDisplay={getSectorDisplay}
+                />
+              ))}
+            </div>
+
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-100 px-2 py-4 mt-8 gap-4">
+                <span className="text-sm text-gray-500">
+                  Page <strong className="text-gray-900">{pagination.currentPage || page}</strong> of <strong className="text-gray-900">{pagination.totalPages}</strong> ({pagination.totalItems || listData.length} alumni)
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={(pagination.currentPage || page) <= 1 || isLoading}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="border-[#233389] text-[#233389] hover:bg-blue-50"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={(pagination.currentPage || page) >= pagination.totalPages || isLoading}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="border-[#233389] text-[#233389] hover:bg-blue-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <EmptyState onClear={clearAllFilters} />
         )}

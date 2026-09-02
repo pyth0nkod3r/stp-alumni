@@ -44,9 +44,17 @@ export default function SuggestedConnections() {
   const userLocation = currentUser.location;
   const userRole = currentUser.title || currentUser.role || currentUser.sector;
 
+  // 1. Fetch backend suggested connections (August 2026 endpoint)
+  const { data: suggestedPayload, isLoading: isLoadingSuggested } = useQuery({
+    queryKey: ["network", "suggested", 10],
+    queryFn: () => networkService.getSuggestedConnections(10),
+  });
+
+  // 2. Fallback query if needed
   const { data: networkData, isLoading: isLoadingNetwork } = useQuery({
     queryKey: ["network", "suggestions"],
     queryFn: () => networkService.getNetwork(),
+    enabled: !suggestedPayload?.data?.byLocation && !suggestedPayload?.data?.byRole,
   });
 
   const { mutate: connectUser, isPending } = useMutation({
@@ -61,6 +69,15 @@ export default function SuggestedConnections() {
   });
 
   const { locationSuggestions, roleSuggestions } = useMemo(() => {
+    // If backend returns categorized suggestions directly, use them
+    const backendData = suggestedPayload?.data;
+    if (backendData && (Array.isArray(backendData.byLocation) || Array.isArray(backendData.byRole))) {
+      return {
+        locationSuggestions: Array.isArray(backendData.byLocation) ? backendData.byLocation : [],
+        roleSuggestions: Array.isArray(backendData.byRole) ? backendData.byRole : [],
+      };
+    }
+
     if (!networkData) return { locationSuggestions: [], roleSuggestions: [] };
 
     const users = Array.isArray(networkData?.data)
@@ -116,7 +133,7 @@ export default function SuggestedConnections() {
       locationSuggestions: byLocation,
       roleSuggestions: byRole,
     };
-  }, [networkData, currentUserId, userLocation, userRole]);
+  }, [suggestedPayload, networkData, currentUserId, userLocation, userRole]);
 
   if (isProfileLoading || isLoadingNetwork) {
     return (
